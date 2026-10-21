@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lista launcher</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Albert+Sans:wght@200..600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="common.css">
+<style>
+  .tint { position: absolute; inset: 0; transition: background-color 800ms var(--ease); }
+  .tint::after {
+    content: ""; position: absolute; inset: 0;
+    background:
+      radial-gradient(ellipse 70% 90% at 75% 50%, rgba(6,7,8,0) 0%, rgba(6,7,8,.7) 60%, #060708 100%),
+      linear-gradient(90deg, #060708 0%, rgba(6,7,8,.85) 34%, rgba(6,7,8,0) 60%);
+  }
+
+  .clock { position: absolute; right: 120px; top: 64px; text-align: right; }
+  .clock .js-time { display: block; font-weight: 200; font-size: 76px; line-height: 1; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
+  .clock .js-date { display: block; margin-top: 10px; font-size: 24px; color: rgba(255,255,255,.6); }
+
+  /* The dial: the focused line always sits on the same height */
+  .dial {
+    position: absolute; left: 0; top: 0; width: 820px; height: 1080px; overflow: hidden;
+    -webkit-mask-image: linear-gradient(180deg, transparent 0%, #000 22%, #000 78%, transparent 100%);
+            mask-image: linear-gradient(180deg, transparent 0%, #000 22%, #000 78%, transparent 100%);
+  }
+  .list { position: absolute; left: 120px; top: 0; right: 0; transition: transform 460ms var(--ease); }
+  .item {
+    position: absolute; left: 0; height: 88px; display: flex; align-items: center; gap: 22px;
+    font-size: 54px; font-weight: 300; letter-spacing: -0.02em; white-space: nowrap;
+    color: #fff; transform-origin: left center;
+    transition: opacity 360ms var(--ease), transform 420ms var(--ease), color 300ms var(--ease);
+  }
+  .item .icon { width: 40px; height: 40px; opacity: .8; }
+  .item .note { font-size: 24px; font-weight: 500; color: rgba(255,255,255,.5); letter-spacing: .02em; }
+  .item.focus { transform: translateX(10px) scale(1.18); font-weight: 400; }
+  .group {
+    position: absolute; left: 0; height: 56px; display: flex; align-items: flex-end;
+    font-size: 26px; font-weight: 500; color: rgba(255,255,255,.5); letter-spacing: .01em;
+    transition: opacity 360ms var(--ease);
+  }
+  .marker {
+    position: absolute; left: 72px; top: 513px; width: 6px; height: 54px; border-radius: 3px;
+    background: #fff; box-shadow: 0 0 18px rgba(255,255,255,.35);
+  }
+
+  /* Preview of what the line points at */
+  .preview { position: absolute; left: 900px; top: 262px; width: 900px; height: 506px; }
+  .halo {
+    position: absolute; left: -240px; right: -240px; top: -200px; bottom: -220px;
+    background: radial-gradient(closest-side, currentColor, transparent); opacity: .42;
+    transition: color 800ms linear;
+  }
+  .pv {
+    position: absolute; inset: 0; border-radius: 26px; overflow: hidden;
+    box-shadow: 0 80px 140px -40px rgba(0,0,0,.95), 0 0 0 1px rgba(255,255,255,.07);
+    transition: opacity 360ms var(--ease), transform 520ms var(--ease);
+  }
+  .pv .card { position: absolute; inset: 0; border-radius: 0; aspect-ratio: auto; }
+  .pv .card.synthetic { font-size: 120px; }
+  .pv::before {
+    content: ""; position: absolute; inset: 0; z-index: 2;
+    background: linear-gradient(160deg, rgba(255,255,255,.18) 0%, rgba(255,255,255,0) 34%);
+  }
+  .pv.sys::before { opacity: .3; }
+  .pv.out { opacity: 0; transform: translateY(24px) scale(.97); }
+  .pv.sys {
+    background: linear-gradient(150deg, #24272d 0%, #14161a 100%);
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 28px;
+  }
+  .pv.sys .icon { width: 150px; height: 150px; stroke-width: 1.2; color: #e9eaec; }
+  .pv.sys .big { font-size: 46px; font-weight: 400; letter-spacing: -0.02em; }
+  .pv.sys .small { font-size: 24px; color: rgba(255,255,255,.55); margin-top: -14px; }
+  .caption { position: absolute; left: 900px; top: 806px; font-size: 26px; color: rgba(255,255,255,.62); display: flex; align-items: center; gap: 14px; }
+  .caption .key {
+    display: inline-flex; align-items: center; height: 38px; padding: 0 13px; border-radius: 10px;
+    background: rgba(255,255,255,.12); color: #fff; font-size: 19px; font-weight: 600; letter-spacing: .04em;
+  }
+</style>
+</head>
+<body>
+<!--
+THESIS: Home is one sentence long: a dial of names, and a picture of the one you are on. Refuses tiles as the primary interface.
+OWN-WORLD: near-black ground warmed by the focused item's colour from the right; Albert Sans 300 at 54px for every line, the focused line growing 18% and fully lit while the rest fade by distance; one 900x506 preview card with a long shadow and a halo; a white 6px marker that never moves.
+STORY: press Up or Down and read; the picture confirms; OK opens. Apps, inputs and settings are all lines of the same list.
+FIRST VIEWPORT: the dial on the left with the focused line at y 540 beside a fixed marker; preview card right at 900,262 with "OK Abrir" below it; thin clock and date top-right.
+FORM: Lista, concept 3 of 3 requested by the owner; seed key 102228a1.
+FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance
+-->
+<div class="stage" id="stage">
+  <div class="tint" id="tint"></div>
+  <div class="clock"><span class="js-time">11:46</span><span class="js-date">miércoles, 21 de octubre</span></div>
+  <div class="preview" id="preview"><div class="halo" id="halo"></div></div>
+  <div class="caption" id="caption"></div>
+  <div class="dial"><div class="list" id="list"></div></div>
+  <div class="marker"></div>
+</div>
+<script src="common.js"></script>
+<script>
+const stage = document.getElementById("stage");
+const ROW = 88, GROUP = 76, CENTER = 540;
+
+// One list: favourites, apps, inputs, system
+const ENTRIES = [
+  { group: "Favoritas" }, ...FAVS.map(a => ({ app: a, fav: true })),
+  { group: "Apps" }, ...LIB.filter(a => a.name !== "Ajustes").map(a => ({ app: a })),
+  { group: "Entradas" }, ...INPUTS.map(i => ({ input: i })),
+  { group: "Sistema" },
+  { sys: { name: "Red", icon: "wifi", detail: SSID } },
+  { sys: { name: "Ajustes", icon: "settings", detail: "Ajustes de la TV" } },
+];
+const list = document.getElementById("list");
+const items = [];
+let y = 0;
+ENTRIES.forEach(en => {
+  const el = document.createElement("div");
+  if (en.group) {
+    el.className = "group"; el.textContent = en.group; el.style.top = y + "px";
+    y += GROUP;
+  } else {
+    el.className = "item"; el.style.top = y + "px";
+    const name = en.app ? en.app.name : (en.input || en.sys).name;
+    const icon = en.input ? ICONS[en.input.icon] : en.sys ? ICONS[en.sys.icon] : "";
+    el.innerHTML = icon + `<span>${name}</span>` + (en.input && en.input.note ? `<span class="note">${en.input.note}</span>` : "");
+    items.push({ el, en, y });
+    y += ROW;
+  }
+  en.el = el;
+  list.append(el);
+});
+
+const st = { i: 0 };
+let shown = -1;
+
+function preview(en) {
+  const box = document.getElementById("preview");
+  const old = box.querySelector(".pv");
+  const pv = document.createElement("div");
+  pv.className = "pv out";
+  let color = "#8a9099", cap = "";
+  if (en.app) {
+    pv.append(cardEl(en.app, 120));
+    color = en.app.glow;
+    cap = `<span class="key">OK</span> Abrir ${en.app.name}` + (en.fav ? " &nbsp;·&nbsp; Favorita" : "");
+  } else {
+    const it = en.input || en.sys;
+    pv.classList.add("sys");
+    pv.innerHTML = ICONS[it.icon] + `<div class="big">${it.name}</div>` +
+      `<div class="small">${en.input ? (it.icon === "tv" ? "Sintonizador" : "Entrada HDMI" + (it.note ? " · " + it.note : "")) : it.detail}</div>`;
+    color = en.input ? "#6f8cff" : "#9aa3ad";
+    cap = `<span class="key">OK</span> ` + (en.input ? `Cambiar a ${it.name}` : `Abrir ${it.name}`);
+  }
+  box.append(pv);
+  requestAnimationFrame(() => requestAnimationFrame(() => pv.classList.remove("out")));
+  if (old) { old.classList.add("out"); setTimeout(() => old.remove(), 420); }
+  document.getElementById("halo").style.color = color;
+  document.getElementById("tint").style.backgroundColor = shade(color, .34);
+  document.getElementById("caption").innerHTML = cap;
+}
+
+function render() {
+  const cur = items[st.i];
+  list.style.transform = `translateY(${CENTER - ROW / 2 - cur.y}px)`;
+  // Fade every line and heading by its distance from the marker
+  ENTRIES.forEach(en => {
+    const top = parseFloat(en.el.style.top);
+    const d = Math.abs(top - cur.y) / ROW;
+    const o = en.group ? Math.max(0, .7 - d * .16) : Math.max(.08, 1 - d * .2);
+    en.el.style.opacity = en.el === cur.el ? 1 : (en.group ? o : Math.min(o, .62));
+    en.el.classList.toggle("focus", en.el === cur.el);
+  });
+  if (shown !== st.i) { shown = st.i; preview(cur.en); }
+}
+
+addEventListener("keydown", e => {
+  if (!NAV_KEYS.includes(e.key)) return;
+  e.preventDefault();
+  if (e.key === "ArrowDown") st.i = Math.min(items.length - 1, st.i + 1);
+  if (e.key === "ArrowUp") st.i = Math.max(0, st.i - 1);
+  if (e.key === "Escape" || e.key === "Backspace") st.i = 0;
+  render();
+});
+
+fitStage(stage);
+startClock();
+mountChrome("lista.html");
+render();
+</script>
+</body>
+</html>

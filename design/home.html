@@ -1,0 +1,586 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Penumbra launcher</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Mona+Sans:wght@200..600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ground: #08090b;
+    --ground-2: #0d0f12;
+    --raised: #16181c;
+    --ink: #f2f2f0;
+    --ink-2: #9ea3aa;
+    --ink-3: #5d6168;
+    --ease: cubic-bezier(.16, 1, .3, 1);
+    --glow: #5fd3f0;
+    --margin: 120px;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: #000; overflow: hidden; }
+  body { font-family: "Mona Sans", system-ui, sans-serif; color: var(--ink); -webkit-font-smoothing: antialiased; }
+  ::selection { background: var(--ink); color: var(--ground); }
+
+  /* The TV: a fixed 1920x1080 stage scaled to the window */
+  .stage {
+    position: absolute; left: 50%; top: 50%;
+    width: 1920px; height: 1080px;
+    transform-origin: 0 0;
+    background:
+      linear-gradient(180deg, var(--ground-2) 0%, var(--ground) 55%, #060708 100%);
+    overflow: hidden;
+  }
+
+  /* Pool of light under the focused tile, tinted from its artwork */
+  .glow {
+    position: absolute; width: 1100px; height: 640px;
+    left: 0; top: 0; pointer-events: none;
+    color: var(--glow);
+    background: radial-gradient(closest-side, currentColor, transparent);
+    opacity: .16;
+    transform: translate(-50%, -50%);
+    transition: left 520ms var(--ease), top 520ms var(--ease), color 520ms linear, opacity 400ms var(--ease);
+  }
+  .stage[data-region="top"] .glow { opacity: .06; }
+
+  .scroller {
+    position: absolute; inset: 0;
+    transition: transform 560ms var(--ease);
+  }
+
+  /* Clock */
+  .clock {
+    position: absolute; left: var(--margin); top: 76px;
+    transition: opacity 400ms var(--ease);
+  }
+  .time {
+    font-family: var(--clock-font, inherit); font-weight: var(--cw, var(--tw, 200)); font-size: 148px; line-height: 1; letter-spacing: var(--ct, var(--tt, -0.035em)); font-variation-settings: var(--cv, normal);
+    font-variant-numeric: tabular-nums;
+  }
+  .date {
+    margin-top: 14px; font-size: 30px; font-weight: 400; color: var(--ink-2); letter-spacing: -0.005em;
+  }
+
+  /* Top-right controls: bare icons; the focused one becomes a lit chip with its label */
+  .controls {
+    position: absolute; right: var(--margin); top: 104px;
+    display: flex; gap: 8px; align-items: center;
+  }
+  .ctl {
+    position: relative;
+    height: 72px; min-width: 72px; padding: 0 20px;
+    display: flex; align-items: center; gap: 0;
+    border-radius: 36px;
+    color: #c4c8ce;
+    transition: background-color 240ms var(--ease), color 240ms var(--ease), gap 300ms var(--ease), box-shadow 300ms var(--ease);
+  }
+  .ctl svg { width: 34px; height: 34px; flex: none; }
+  .ctl .lbl {
+    max-width: 0; overflow: hidden; white-space: nowrap;
+    font-size: 26px; font-weight: 500; letter-spacing: -0.005em;
+    transition: max-width 360ms var(--ease), opacity 240ms var(--ease);
+    opacity: 0;
+  }
+  .ctl.net .ssid {
+    font-size: 24px; color: var(--ink-3); margin-left: 12px; white-space: nowrap;
+    transition: opacity 200ms var(--ease);
+  }
+  .ctl.focus {
+    background: var(--ink); color: #0b0c0e; gap: 14px;
+    box-shadow: 0 14px 30px -10px rgba(0,0,0,.7);
+  }
+  .ctl.focus .lbl { max-width: 420px; opacity: 1; }
+  .ctl.net.focus .ssid { opacity: 0; width: 0; margin: 0; }
+
+  /* Tiles */
+  .row { position: absolute; left: var(--margin); right: var(--margin); display: grid; }
+  .favs { top: 456px; grid-template-columns: repeat(4, 1fr); column-gap: 48px; }
+  .library-head {
+    position: absolute; left: var(--margin); top: 742px;
+    font-size: 28px; font-weight: 500; color: var(--ink-2); letter-spacing: -0.005em;
+    transition: color 300ms var(--ease);
+  }
+  .stage[data-region="lib"] .library-head { color: var(--ink); }
+  .favs, .controls { transition: opacity 360ms var(--ease); }
+  .stage[data-region="lib"] .favs, .stage[data-region="lib"] .controls { opacity: 0; }
+  .lib { top: 800px; grid-template-columns: repeat(6, 1fr); column-gap: 32px; row-gap: 64px; }
+
+  .tile { position: relative; }
+  .card {
+    position: relative; aspect-ratio: 16 / 9; border-radius: 16px; overflow: hidden;
+    background: var(--raised) center / cover no-repeat;
+    box-shadow: 0 10px 24px -14px rgba(0,0,0,.9);
+    transition: transform 300ms var(--ease), box-shadow 300ms var(--ease);
+    will-change: transform;
+  }
+  /* Penumbra: everything not focused sits in shadow */
+  .card::after {
+    content: ""; position: absolute; inset: 0; border-radius: inherit;
+    background: #000; opacity: .42;
+    transition: opacity 260ms var(--ease);
+  }
+  /* Sheen on the lit tile only, so it reads as an object, not a flat rectangle */
+  .card::before {
+    content: ""; position: absolute; inset: 0; z-index: 1; border-radius: inherit;
+    background: linear-gradient(165deg, rgba(255,255,255,.22) 0%, rgba(255,255,255,0) 38%);
+    opacity: 0; transition: opacity 300ms var(--ease);
+  }
+  .stage[data-region="top"] .card::after { opacity: .6; }
+  .stage[data-region="lib"] .favs .card::after { opacity: .62; }
+  .stage[data-region="favs"] .lib .card::after { opacity: .58; }
+
+  .tile.focus .card {
+    transform: translateY(-6px) scale(1.075);
+    box-shadow: 0 34px 60px -18px rgba(0,0,0,.95), 0 0 0 1px rgba(255,255,255,.06);
+  }
+  .lib .tile.focus .card { transform: translateY(-4px) scale(1.11); }
+  .tile.focus .card::after { opacity: 0; }
+  .tile.focus .card::before { opacity: 1; }
+
+  .name {
+    position: absolute; left: 0; right: 0; top: calc(100% + 26px);
+    text-align: center; font-size: 26px; font-weight: 500; letter-spacing: -0.005em;
+    opacity: 0; transform: translateY(-6px);
+    transition: opacity 220ms var(--ease), transform 300ms var(--ease);
+    white-space: nowrap;
+  }
+  .lib .name { font-size: 24px; top: calc(100% + 22px); }
+  .tile.focus .name { opacity: 1; transform: none; }
+
+  /* Stand-in artwork for apps whose real banner was not captured (synthetic) */
+  .synthetic { display: grid; place-items: center; font-weight: 600; letter-spacing: -0.02em; }
+
+  /* Pinned input tile: a drawn surface instead of a banner */
+  .card.input {
+    background: linear-gradient(150deg, #2b2f36 0%, #1a1c21 55%, #131519 100%);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.08), 0 10px 24px -14px rgba(0,0,0,.9);
+  }
+  .card.input { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; }
+  .card.input .ic { width: 58px; height: 58px; color: #e9ebee; }
+  .card.input .ic svg { width: 100%; height: 100%; display: block; }
+  .card.input .il { font-size: 38px; font-weight: 500; letter-spacing: -0.02em; line-height: 1; }
+  .lib .card.input { gap: 8px; }
+  .lib .card.input .ic { width: 40px; height: 40px; }
+  .lib .card.input .il { font-size: 28px; }
+
+  /* Inputs menu */
+  .menu {
+    position: absolute; z-index: 5; top: 196px; right: var(--margin); width: 380px; padding: 10px;
+    background: var(--raised); border-radius: 24px;
+    box-shadow: 0 40px 80px -20px rgba(0,0,0,.9), inset 0 1px 0 rgba(255,255,255,.06);
+    opacity: 0; transform: translateY(-10px) scale(.98); transform-origin: top right;
+    pointer-events: none;
+    transition: opacity 220ms var(--ease), transform 300ms var(--ease);
+  }
+  .menu.open { opacity: 1; transform: none; }
+  .mi {
+    height: 68px; padding: 0 20px; border-radius: 16px;
+    display: flex; align-items: center; gap: 18px;
+    font-size: 26px; font-weight: 400; color: #d6d9dd;
+    transition: background-color 180ms var(--ease), color 180ms var(--ease);
+  }
+  .mi svg { width: 28px; height: 28px; flex: none; color: var(--ink-2); }
+  .mi .state { margin-left: auto; font-size: 20px; color: var(--ink-3); }
+  .mi.focus { background: var(--ink); color: #0b0c0e; }
+  .mi.focus svg, .mi.focus .state { color: #0b0c0e; }
+  .sep { height: 1px; margin: 8px 20px; background: rgba(255,255,255,.08); }
+
+  /* ---------- Variants (keys 0-3, or ?v=0..3) ---------- */
+  /* Background layers every variant may use; hidden in Penumbra */
+  .tint, .wash, .floor { position: absolute; pointer-events: none; opacity: 0; transition: opacity 500ms var(--ease); }
+  .tint { inset: 0; background-color: #000; transition: background-color 700ms var(--ease), opacity 500ms var(--ease); }
+  .tint::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,.35) 45%, rgba(0,0,0,.88) 100%); }
+  .wash {
+    left: -10%; right: -10%; top: -420px; height: 1200px; color: var(--glow);
+    background: radial-gradient(ellipse 50% 50% at 50% 50%, currentColor, transparent 100%);
+    transition: color 700ms linear, opacity 500ms var(--ease), transform 700ms var(--ease);
+  }
+  .floor {
+    left: 0; right: 0; top: 650px; height: 430px;
+    background: linear-gradient(180deg, rgba(255,255,255,.035) 0%, rgba(255,255,255,0) 70%);
+    border-top: 1px solid rgba(255,255,255,.06);
+  }
+  .reflect { display: none; }
+
+  /* 1 · Ambiente: the app's colour backlights the room; less shadow on the rest */
+  .stage[data-v="1"] .wash { opacity: .30; }
+  .stage[data-v="1"] .glow { opacity: .34; width: 1500px; height: 900px; }
+  .stage[data-v="1"] .card::after { opacity: .2; }
+  .stage[data-v="1"][data-region="top"] .card::after,
+  .stage[data-v="1"][data-region="lib"] .favs .card::after,
+  .stage[data-v="1"][data-region="favs"] .lib .card::after { opacity: .34; }
+  .stage[data-v="1"] .date { color: #c3c7cc; }
+  .stage[data-v="1"] .ctl { color: #e4e6e9; }
+
+  /* 2 · Color: the whole ground takes a deep shade of the focused app */
+  .stage[data-v="2"] .tint { opacity: 1; }
+  .stage[data-v="2"] .glow { opacity: .22; }
+  .stage[data-v="2"] .card::after { opacity: .26; }
+  .stage[data-v="2"][data-region="top"] .card::after,
+  .stage[data-v="2"][data-region="lib"] .favs .card::after,
+  .stage[data-v="2"][data-region="favs"] .lib .card::after { opacity: .4; }
+  .stage[data-v="2"] .date, .stage[data-v="2"] .library-head { color: rgba(255,255,255,.7); }
+  .stage[data-v="2"] .ctl { color: rgba(255,255,255,.88); }
+  .stage[data-v="2"] .menu { background: #1b1d21; }
+
+  /* 3 · Reflejo: lighter graphite, favourites stand on a glossy floor */
+  .stage[data-v="3"] { background: linear-gradient(180deg, #1a1c20 0%, #121417 50%, #0b0c0e 100%); }
+  .stage[data-v="3"] .floor { opacity: 1; }
+  .stage[data-v="3"] .glow { opacity: .2; }
+  .stage[data-v="3"] .card::after { opacity: .28; }
+  .stage[data-v="3"][data-region="top"] .card::after,
+  .stage[data-v="3"][data-region="lib"] .favs .card::after,
+  .stage[data-v="3"][data-region="favs"] .lib .card::after { opacity: .42; }
+  .stage[data-v="3"] .favs { top: 412px; }
+  .stage[data-v="3"] .library-head { top: 792px; }
+  .stage[data-v="3"] .lib { top: 848px; }
+  .stage[data-v="3"] .favs .reflect {
+    display: block; position: absolute; left: 0; right: 0; top: calc(100% + 6px);
+    aspect-ratio: 16 / 9; border-radius: 16px;
+    background: center / cover no-repeat;
+    transform: scaleY(-1); opacity: .22;
+    -webkit-mask-image: linear-gradient(0deg, #000 0%, transparent 42%);
+            mask-image: linear-gradient(0deg, #000 0%, transparent 42%);
+    transition: transform 300ms var(--ease), opacity 260ms var(--ease);
+  }
+  .stage[data-v="3"] .favs .tile.focus .reflect { opacity: .4; transform: translateY(14px) scaleY(-1.075) scaleX(1.075); }
+  .stage[data-v="3"] .favs .name { top: calc(100% + 100px); }
+  .stage[data-v="3"] .date { color: #aeb3b9; }
+  .stage[data-v="3"] .menu { background: #23262b; }
+
+  .switcher {
+    position: fixed; left: 50%; top: 14px; transform: translateX(-50%); z-index: 10;
+    display: flex; gap: 4px; padding: 4px; border-radius: 999px;
+    background: rgba(18,20,24,.92); box-shadow: 0 8px 24px rgba(0,0,0,.5);
+    font: 500 13px/1 system-ui, sans-serif;
+  }
+  .switcher[hidden] { display: none; }
+  .switcher button {
+    all: unset; cursor: pointer; padding: 7px 10px; border-radius: 999px; color: #9aa0a7; white-space: nowrap; font-size: 12px;
+  }
+  .switcher button.on { background: #f2f2f0; color: #0b0c0e; }
+  .switcher kbd { font: inherit; opacity: .55; margin-right: 6px; }
+
+  .hint {
+    position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%);
+    font: 500 13px/1 system-ui, sans-serif; color: #8b9097;
+    background: rgba(20,22,26,.9); padding: 9px 14px; border-radius: 999px;
+    transition: opacity 600ms ease; letter-spacing: .01em;
+  }
+  .hint.gone { opacity: 0; }
+</style>
+</head>
+<body>
+<!--
+THESIS: Home is a dark room and the light falls only on what you are about to pick. Refuses the category default of bordered pills, a grey dock band and an oversized label over empty space.
+OWN-WORLD: near-black blue-grey ground (#08090b), one raised surface (#16181c), warm off-white ink (#f2f2f0); Mona Sans, thin 200 clock, 500 labels; 16px-radius 16:9 tiles dimmed to 42% shadow when unfocused; focus = lift, 7.5% scale, soft long shadow, top sheen, and a pool of light tinted from the app's artwork; controls are bare line icons that become a lit chip with a label.
+STORY: the owner glances at the time, sees their four apps and their inputs, presses once or twice, and is watching.
+FIRST VIEWPORT: thin 148px clock and date top-left; three bare icons top-right; four favourite tiles (384x216) at y 456; "Apps" heading at y 742 and the first library row of six smaller tiles below, the second row peeking at the bottom edge.
+FORM: Penumbra, grounded list position 1 of the safer register; seed key 102228a1.
+FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance
+-->
+<!-- Banners in design/banners/ are crops of the real apps' leanback banners, taken from launcher screenshots on the owner's TCL G08. Tiles marked .synthetic are stand-ins for apps whose banner was not captured. -->
+<div class="stage" id="stage" data-region="favs">
+  <div class="tint" id="tint"></div>
+  <div class="wash" id="wash"></div>
+  <div class="floor"></div>
+  <div class="glow" id="glow"></div>
+  <div class="scroller" id="scroller">
+    <div class="clock" id="clock">
+      <div class="time" id="time">10:02</div>
+      <div class="date" id="date">miércoles, 21 de octubre</div>
+    </div>
+
+    <div class="controls" id="controls">
+      <div class="ctl" data-id="inputs">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><path d="m10 17 5-5-5-5"/><path d="M15 12H3"/></svg>
+        <span class="lbl">Entradas</span>
+      </div>
+      <div class="ctl net" data-id="network">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h.01"/><path d="M2 8.82a15 15 0 0 1 20 0"/><path d="M5 12.86a10 10 0 0 1 14 0"/><path d="M8.5 16.43a5 5 0 0 1 7 0"/></svg>
+        <span class="lbl">surveillance-drone-02</span>
+      </div>
+      <div class="ctl" data-id="settings">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+        <span class="lbl">Ajustes</span>
+      </div>
+    </div>
+
+    <div class="menu" id="menu"></div>
+
+    <div class="row favs" id="favs"></div>
+    <div class="library-head">Apps</div>
+    <div class="row lib" id="lib"></div>
+  </div>
+</div>
+<div class="switcher" id="switcher" hidden>
+  <button data-f="0"><kbd>1</kbd>Albert Sans</button>
+  <button data-f="1"><kbd>2</kbd>Mona Sans</button>
+  <button data-f="2"><kbd>3</kbd>Hanken Grotesk</button>
+  <button data-f="3"><kbd>4</kbd>Onest</button>
+  <button data-f="4"><kbd>5</kbd>Red Hat Display</button>
+  <button data-f="5"><kbd>6</kbd>Funnel Sans</button>
+  <button data-clock="fraunces"><kbd>7</kbd>Hora en Fraunces</button>
+</div>
+<div class="hint" id="hint">Flechas para moverte · Enter para abrir · Esc para volver</div>
+
+<script>
+const B = "banners/";
+const FAVS = [
+  { name: "TizenTube", img: B + "tizentube.jpg", glow: "#4fd2f2" },
+  { name: "Jellyfin", img: B + "jellyfin.jpg", glow: "#7b5cff" },
+  { name: "Netflix", img: B + "netflix.jpg", glow: "#e50914" },
+  { name: "Prime Video", img: B + "prime.jpg", glow: "#1f8fff" },
+  // Pinned input (config: input_tiles): opens HDMI 2 directly
+  { name: "PS5", input: { port: "HDMI 2", icon: "gamepad" }, glow: "#6f86ff" },
+];
+const LIB = [
+  { name: "TV", input: { port: "TV en vivo", icon: "tv" }, glow: "#9aa3ad" },
+  { name: "Apple TV", img: B + "appletv.jpg", glow: "#b8b8c2" },
+  { name: "Disney+", img: B + "disney.jpg", glow: "#18b6b9" },
+  { name: "atresplayer", img: B + "atresplayer.jpg", glow: "#ff3a6b" },
+  { name: "RTVE Play", img: B + "rtve.jpg", glow: "#ff6a00" },
+  { name: "Twitch", synth: { bg: "#9146ff", fg: "#fff", text: "twitch", size: 54 }, glow: "#9146ff" },
+  { name: "TV Player", synth: { bg: "#1b1d22", fg: "#e9e9e9", text: "TV Player", size: 40 }, glow: "#8a9099" },
+  { name: "Google Play Store", img: B + "playstore.jpg", glow: "#34a853" },
+  { name: "Downloader", synth: { bg: "#f08a24", fg: "#1a1206", text: "Downloader", size: 40 }, glow: "#f08a24" },
+  { name: "Galería", synth: { bg: "#23262c", fg: "#e9e9e9", text: "Galería", size: 42 }, glow: "#8a9099" },
+  { name: "Reproductor", synth: { bg: "#2a2d33", fg: "#e9e9e9", text: "Reproductor", size: 38 }, glow: "#8a9099" },
+  { name: "Quick Actions", synth: { bg: "#11161d", fg: "#7fb2ff", text: "Quick Actions", size: 36 }, glow: "#4c8dff" },
+  { name: "Ajustes", img: B + "settings.jpg", glow: "#8a9099" },
+];
+const INPUTS = [
+  { label: "HDMI 1", icon: "hdmi" }, { label: "HDMI 2", icon: "hdmi" },
+  { label: "HDMI 3", icon: "hdmi" }, { label: "HDMI 4", icon: "hdmi", state: "ARC" },
+  { sep: true },
+  { label: "TV en vivo", icon: "tv" },
+];
+const ICONS = {
+  hdmi: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h18v5l-3 3H6l-3-3z"/><path d="M7 11h10"/></svg>',
+  tv: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="m17 2-5 5-5-5"/></svg>',
+  gamepad: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 11h4"/><path d="M8 9v4"/><path d="M15 12h.01"/><path d="M18 10h.01"/><path d="M17.32 5H6.68a4 4 0 0 0-3.98 3.59C2.6 9.42 2 14.46 2 16a3 3 0 0 0 3 3c1 0 1.5-.5 2-1l1.41-1.41A2 2 0 0 1 9.83 16h4.34a2 2 0 0 1 1.41.59L17 18c.5.5 1 1 2 1a3 3 0 0 0 3-3c0-1.54-.6-6.58-.69-7.26A4 4 0 0 0 17.32 5z"/></svg>',
+};
+
+function tileEl(app) {
+  const t = document.createElement("div");
+  t.className = "tile";
+  const c = document.createElement("div");
+  c.className = "card";
+  if (app.img) c.style.backgroundImage = `url("${app.img}")`;
+  else if (app.input) {
+    // No banner for an input: drawn surface, icon, name, port
+    c.classList.add("input");
+    c.innerHTML = `<span class="ic">${ICONS[app.input.icon]}</span><span class="il">${app.name}</span>`;
+  } else {
+    c.classList.add("synthetic");
+    c.style.background = app.synth.bg;
+    c.style.color = app.synth.fg;
+    c.style.fontSize = app.synth.size + "px";
+    c.textContent = app.synth.text;
+  }
+  const n = document.createElement("div");
+  n.className = "name";
+  n.textContent = app.input && app.input.port !== app.name ? `${app.name} · ${app.input.port}` : app.name;
+  const rf = document.createElement("div");
+  rf.className = "reflect";
+  if (app.img) rf.style.backgroundImage = `url("${app.img}")`;
+  t.append(c, rf, n);
+  return t;
+}
+const favsEl = document.getElementById("favs");
+const libEl = document.getElementById("lib");
+FAVS.forEach(a => favsEl.append(tileEl(a)));
+favsEl.style.gridTemplateColumns = `repeat(${FAVS.length}, 1fr)`;
+if (FAVS.length > 4) favsEl.style.columnGap = "40px";
+LIB.forEach(a => libEl.append(tileEl(a)));
+
+const menu = document.getElementById("menu");
+INPUTS.forEach(i => {
+  if (i.sep) { const s = document.createElement("div"); s.className = "sep"; menu.append(s); return; }
+  const m = document.createElement("div");
+  m.className = "mi";
+  m.innerHTML = ICONS[i.icon] + `<span>${i.label}</span>` + (i.state ? `<span class="state">${i.state}</span>` : "");
+  menu.append(m);
+});
+
+const stage = document.getElementById("stage");
+const scroller = document.getElementById("scroller");
+const glow = document.getElementById("glow");
+const clock = document.getElementById("clock");
+const ctls = [...document.querySelectorAll(".ctl")];
+const favTiles = [...favsEl.children];
+const libTiles = [...libEl.children];
+const menuItems = [...menu.querySelectorAll(".mi")];
+const COLS = 6;
+
+// Focus state; each region remembers its last position
+const st = { region: "favs", top: 0, fav: 0, lib: 0, menu: 0, menuOpen: false };
+
+function centerX(el) { const r = el.getBoundingClientRect(); return r.left + r.width / 2; }
+function nearest(list, x) {
+  let best = 0, d = Infinity;
+  list.forEach((el, i) => { const dd = Math.abs(centerX(el) - x); if (dd < d) { d = dd; best = i; } });
+  return best;
+}
+
+function scrollFor() {
+  if (st.region !== "lib") return 0;
+  const row = Math.floor(st.lib / COLS);
+  return -(572 + Math.max(0, row - 1) * 198);
+}
+
+function render() {
+  stage.dataset.region = st.region;
+  [...ctls, ...favTiles, ...libTiles, ...menuItems].forEach(e => e.classList.remove("focus"));
+  let el, app;
+  if (st.menuOpen) { menuItems[st.menu].classList.add("focus"); ctls[0].classList.add("focus"); }
+  else if (st.region === "top") ctls[st.top].classList.add("focus");
+  else if (st.region === "favs") { el = favTiles[st.fav]; app = FAVS[st.fav]; }
+  else { el = libTiles[st.lib]; app = LIB[st.lib]; }
+  if (el) el.classList.add("focus");
+  menu.classList.toggle("open", st.menuOpen);
+
+  const y = scrollFor();
+  scroller.style.transform = `translateY(${y}px)`;
+  clock.style.opacity = st.region === "lib" ? 0 : 1;
+
+  // Move the pool of light under the focused tile (stage coordinates)
+  const target = el ? el.querySelector(".card") : (st.menuOpen ? menuItems[st.menu] : ctls[st.top]);
+  const sx = stage.getBoundingClientRect();
+  const k = sx.width / 1920;
+  const r = target.getBoundingClientRect();
+  const cx = (r.left + r.width / 2 - sx.left) / k;
+  const cyNow = (r.top + r.height / 2 - sx.top) / k;
+  // account for the scroll transition still running: use the destination offset
+  const current = new DOMMatrix(getComputedStyle(scroller).transform).m42;
+  const cy = cyNow - current + y + (el ? 70 : 0);
+  glow.style.left = cx + "px";
+  glow.style.top = cy + "px";
+  if (app) {
+    glow.style.color = app.glow;
+    wash.style.color = app.glow;
+    tint.style.backgroundColor = shade(app.glow, .34);
+  }
+  wash.style.transform = `translateX(${(cx - 960) * 0.45}px)`;
+}
+
+// Mix a hex colour with black: amount of colour kept
+function shade(hex, k) {
+  const n = parseInt(hex.slice(1), 16);
+  const r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
+  return `rgb(${Math.round(r * k)}, ${Math.round(g * k)}, ${Math.round(b * k)})`;
+}
+
+const tint = document.getElementById("tint");
+const wash = document.getElementById("wash");
+const switcher = document.getElementById("switcher");
+function setVariant(v) {
+  stage.dataset.v = v;
+  requestAnimationFrame(render);
+}
+// Typeface candidates: [family, clock weight, clock tracking]
+const FONTS = [
+  ["Albert Sans", 200, "-0.035em"], ["Mona Sans", 200, "-0.03em"], ["Hanken Grotesk", 200, "-0.035em"],
+  ["Onest", 200, "-0.035em"], ["Red Hat Display", 300, "-0.03em"], ["Funnel Sans", 300, "-0.035em"],
+];
+function setFont(i) {
+  const [f, w, t] = FONTS[i];
+  document.documentElement.style.setProperty("--font", `"${f}"`);
+  document.documentElement.style.setProperty("--tw", w);
+  document.documentElement.style.setProperty("--tt", t);
+  [...switcher.children].forEach(b => b.classList.toggle("on", b.dataset.f === String(i)));
+  const u = new URL(location); u.searchParams.set("f", i + 1); history.replaceState(null, "", u);
+  document.fonts.ready.then(() => requestAnimationFrame(render));
+}
+// Optional serif clock, independent of the UI face
+function setClockSerif(on) {
+  const r = document.documentElement.style;
+  if (on) { r.setProperty("--clock-font", '"Fraunces"'); r.setProperty("--cw", 300); r.setProperty("--ct", "-0.02em"); r.setProperty("--cv", '"opsz" 144'); }
+  else ["--clock-font", "--cw", "--ct", "--cv"].forEach(v => r.removeProperty(v));
+  switcher.querySelector("[data-clock]").classList.toggle("on", on);
+  const u = new URL(location); on ? u.searchParams.set("clock", "fraunces") : u.searchParams.delete("clock"); history.replaceState(null, "", u);
+}
+switcher.addEventListener("click", e => {
+  const b = e.target.closest("button"); if (!b) return;
+  if (b.dataset.clock) setClockSerif(!b.classList.contains("on")); else setFont(+b.dataset.f);
+});
+
+function move(key) {
+  if (st.menuOpen) {
+    if (key === "ArrowDown") st.menu = Math.min(menuItems.length - 1, st.menu + 1);
+    if (key === "ArrowUp") st.menu = Math.max(0, st.menu - 1);
+    if (key === "Enter" || key === "Escape" || key === "Backspace" || key === "ArrowLeft" || key === "ArrowRight") st.menuOpen = false;
+    return;
+  }
+  if (st.region === "top") {
+    if (key === "ArrowLeft") st.top = Math.max(0, st.top - 1);
+    if (key === "ArrowRight") st.top = Math.min(ctls.length - 1, st.top + 1);
+    if (key === "ArrowDown") st.region = "favs";
+    if (key === "Enter" && st.top === 0) { st.menuOpen = true; st.menu = 0; }
+    return;
+  }
+  if (st.region === "favs") {
+    if (key === "ArrowLeft") st.fav = Math.max(0, st.fav - 1);
+    if (key === "ArrowRight") st.fav = Math.min(favTiles.length - 1, st.fav + 1);
+    if (key === "ArrowUp") st.region = "top";
+    if (key === "ArrowDown") { st.lib = nearest(libTiles.slice(0, COLS), centerX(favTiles[st.fav])); st.region = "lib"; }
+    return;
+  }
+  if (st.region === "lib") {
+    const col = st.lib % COLS, row = Math.floor(st.lib / COLS);
+    if (key === "ArrowLeft" && col > 0) st.lib--;
+    if (key === "ArrowRight" && col < COLS - 1 && st.lib + 1 < libTiles.length) st.lib++;
+    if (key === "ArrowDown" && st.lib + COLS < libTiles.length) st.lib += COLS;
+    if (key === "ArrowUp") {
+      if (row > 0) st.lib -= COLS;
+      else { st.fav = nearest(favTiles, centerX(libTiles[st.lib])); st.region = "favs"; }
+    }
+    if (key === "Escape" || key === "Backspace") st.region = "favs";
+  }
+}
+
+addEventListener("keydown", e => {
+  const keys = ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Enter", "Escape", "Backspace"];
+  if (e.key === "h" || e.key === "H") { st.region = "favs"; st.menuOpen = false; render(); return; }
+  if (!keys.includes(e.key)) return;
+  e.preventDefault();
+  move(e.key);
+  render();
+  document.getElementById("hint").classList.add("gone");
+});
+
+function fit() {
+  const k = Math.min(innerWidth / 1920, innerHeight / 1080);
+  stage.style.transform = `scale(${k}) translate(-50%, -50%)`;
+  stage.style.transformOrigin = "0 0";
+  stage.style.left = "50%"; stage.style.top = "50%";
+  stage.style.transform = `translate(-50%, -50%) scale(${k})`;
+  stage.style.transformOrigin = "50% 50%";
+  render();
+}
+
+function tick() {
+  const d = new Date();
+  document.getElementById("time").textContent = d.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" });
+  document.getElementById("date").textContent = d.toLocaleDateString("es-ES", { weekday: "long", day: "numeric", month: "long" });
+}
+tick(); setInterval(tick, 10000);
+
+// Place the inputs menu under its control
+function placeMenu() {
+  const s = stage.getBoundingClientRect(), k = s.width / 1920;
+  const r = ctls[0].getBoundingClientRect();
+  /* right-aligned in CSS */
+}
+addEventListener("resize", () => { fit(); placeMenu(); });
+document.fonts.ready.then(() => { fit(); placeMenu(); render(); });
+setVariant("0");
+setFont(1); // Mona Sans, chosen by the owner
+fit(); placeMenu();
+setTimeout(() => document.getElementById("hint").classList.add("gone"), 6000);
+</script>
+</body>
+</html>

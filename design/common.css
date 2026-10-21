@@ -1,0 +1,44 @@
+/* Shared base for the three launcher concepts. Nothing here uses blur: every effect is a gradient,
+   opacity, shadow or transform, so it ports to Android Views on a 1-2 GB TV. */
+:root {
+  --ink: #f2f2f0;
+  --ink-2: #a3a8af;
+  --ink-3: #62676e;
+  --raised: #17191d;
+  --ease: cubic-bezier(.16, 1, .3, 1);
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; background: #000; overflow: hidden; }
+body { font-family: "Albert Sans", system-ui, sans-serif; color: var(--ink); -webkit-font-smoothing: antialiased; }
+::selection { background: var(--ink); color: #000; }
+
+.stage {
+  position: absolute; left: 50%; top: 50%;
+  width: 1920px; height: 1080px; overflow: hidden;
+  transform-origin: 50% 50%;
+  background: #08090b;
+}
+
+.card {
+  position: relative; aspect-ratio: 16 / 9; border-radius: 16px; overflow: hidden;
+  background: var(--raised) center / cover no-repeat;
+}
+.synthetic { display: grid; place-items: center; font-weight: 600; letter-spacing: -0.02em; }
+.icon { width: 32px; height: 32px; flex: none; }
+
+.switcher {
+  position: fixed; left: 50%; top: 14px; transform: translateX(-50%); z-index: 50;
+  display: flex; gap: 4px; padding: 4px; border-radius: 999px;
+  background: rgba(18,20,24,.94); box-shadow: 0 8px 24px rgba(0,0,0,.5);
+  font: 500 13px/1 "Albert Sans", system-ui, sans-serif;
+}
+.switcher a { padding: 8px 14px; border-radius: 999px; color: #9aa0a7; text-decoration: none; }
+.switcher a.on { background: #f2f2f0; color: #0b0c0e; }
+.switcher kbd { font: inherit; opacity: .55; margin-right: 6px; }
+.hint {
+  position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%); z-index: 50;
+  font: 500 13px/1 "Albert Sans", system-ui, sans-serif; color: #8b9097;
+  background: rgba(20,22,26,.92); padding: 9px 14px; border-radius: 999px;
+  transition: opacity 600ms ease;
+}
+.hint.gone { opacity: 0; }
