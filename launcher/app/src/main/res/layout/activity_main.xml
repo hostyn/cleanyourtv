@@ -65,7 +65,7 @@
                 android:singleLine="true"
                 android:textColor="#B3FFFFFF"
                 android:textSize="12sp"
-                android:fontFamily="@font/penumbra_medium"
+                android:fontFamily="@font/halo_medium"
                 android:letterSpacing="0.22"
                 android:textAllCaps="true" />
         </LinearLayout>
@@ -78,7 +78,7 @@
             android:singleLine="true"
             android:textColor="#FFFFFFFF"
             android:textSize="34sp"
-            android:fontFamily="@font/penumbra_light"
+            android:fontFamily="@font/halo_light"
             android:letterSpacing="-0.01"
             android:includeFontPadding="false" />
 
@@ -90,7 +90,7 @@
             android:singleLine="true"
             android:textColor="#99FFFFFF"
             android:textSize="12sp"
-            android:fontFamily="@font/penumbra_medium"
+            android:fontFamily="@font/halo_medium"
             android:letterSpacing="0.12" />
     </LinearLayout>
 
@@ -118,7 +118,7 @@
             android:layout_height="wrap_content"
             android:textColor="#FFFFFFFF"
             android:textSize="48sp"
-            android:fontFamily="@font/penumbra_light"
+            android:fontFamily="@font/halo_light"
             android:letterSpacing="-0.02"
             android:includeFontPadding="false"
             android:singleLine="true" />
@@ -133,7 +133,7 @@
             android:singleLine="true"
             android:textColor="#B3FFFFFF"
             android:textSize="15sp"
-            android:fontFamily="@font/penumbra_light"
+            android:fontFamily="@font/halo_light"
             android:visibility="gone" />
 
         <LinearLayout
@@ -187,7 +187,7 @@
                     android:ellipsize="end"
                     android:textColor="#FF9EA3AA"
                     android:textSize="14sp"
-                    android:fontFamily="@font/penumbra_medium"
+                    android:fontFamily="@font/halo_medium"
                     android:visibility="gone" />
 
                 <LinearLayout
@@ -204,7 +204,7 @@
                         android:format24Hour="HH:mm"
                         android:textColor="#FFF2F2F0"
                         android:textSize="74sp"
-                        android:fontFamily="@font/penumbra_extralight"
+                        android:fontFamily="@font/halo_extralight"
                         android:letterSpacing="-0.03"
                         android:includeFontPadding="false" />
 
@@ -219,7 +219,7 @@
                         android:format24Hour=""
                         android:textColor="#FF9EA3AA"
                         android:textSize="16sp"
-                        android:fontFamily="@font/penumbra_regular" />
+                        android:fontFamily="@font/halo_regular" />
                 </LinearLayout>
 
                 <!-- Shamsi date ("27 Mehr 1405"), shown when shamsi_date is on. -->
@@ -233,7 +233,7 @@
                     android:ellipsize="end"
                     android:textColor="#FFF2F2F0"
                     android:textSize="16sp"
-                    android:fontFamily="@font/penumbra_regular"
+                    android:fontFamily="@font/halo_regular"
                     android:includeFontPadding="false"
                     android:visibility="gone" />
 
@@ -251,7 +251,7 @@
                     android:format24Hour="@string/date_format_home"
                     android:textColor="#FF9EA3AA"
                     android:textSize="15sp"
-                    android:fontFamily="@font/penumbra_regular" />
+                    android:fontFamily="@font/halo_regular" />
             </LinearLayout>
 
             <!-- Shown only when show_stats is on. Outside leftBlock, so the top buttons stay level with the clock
@@ -269,7 +269,7 @@
                 android:ellipsize="end"
                 android:textColor="#D9FFFFFF"
                 android:textSize="14sp"
-                android:fontFamily="@font/penumbra_medium"
+                android:fontFamily="@font/halo_medium"
                 android:letterSpacing="0.04"
                 android:focusable="false"
                 android:visibility="gone" />
@@ -339,7 +339,7 @@
         </FrameLayout>
     </LinearLayout>
 
-    <!-- The old floating glass highlight. Penumbra marks focus with light on the tile itself (DESIGN.md), so it
+    <!-- The old floating glass highlight. Halo marks focus with light on the tile itself (DESIGN.md), so it
          stays hidden; MainActivity still sizes it, which costs nothing while it is gone. -->
     <com.gathin.tvhome.GlassView
         android:id="@+id/glass"

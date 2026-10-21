@@ -56,7 +56,7 @@ screenshots pulled from the TV. With this repo as context it takes about fifteen
 
 ## What you get
 
-![Home: a thin clock and the date, five favourites with TV first, the other apps in a grid below](docs/penumbra-home.jpg)
+![Home: a thin clock and the date, five favourites with TV first, the other apps in a grid below](docs/halo-home.jpg)
 
 - **A near-black home** with your favourite apps first and large, three to six of them (`dock_size`), the rest
   in a grid of smaller tiles that slides up when you press Down. Its look is written down in
@@ -448,5 +448,5 @@ Security issues: report them privately through the [Security tab](https://github
 
 ## Licence
 
-MIT, see [`LICENSE`](LICENSE). The typeface, Mona Sans (shipped subset and renamed Penumbra Sans, as its
+MIT, see [`LICENSE`](LICENSE). The typeface, Mona Sans (shipped subset and renamed Halo Sans, as its
 Reserved Font Name requires), is under the SIL Open Font License, see `launcher/FONT-LICENSE-OFL.txt`.

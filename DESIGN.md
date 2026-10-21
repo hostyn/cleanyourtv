@@ -1,4 +1,4 @@
-# Design: Penumbra
+# Design: Halo
 
 The launcher's home screen is a dark room where the light falls only on what you are about to open.
 Reference mockup: `design/home.html` (1920x1080 px; on a 1080p TV 1 dp = 2 px, so halve every px value).
@@ -25,7 +25,7 @@ Reference mockup: `design/home.html` (1920x1080 px; on a 1080p TV 1 dp = 2 px, s
 
 ## Type
 
-Mona Sans (OFL), shipped subset and renamed **Penumbra Sans** (`res/font/penumbra_sans.ttf`, the OFL Reserved
+Mona Sans (OFL), shipped subset and renamed **Halo Sans** (`res/font/halo_sans.ttf`, the OFL Reserved
 Font Name forbids "Mona" on a modified copy). Weights 200-600 from one variable file.
 
 | Role | Size | Weight | Tracking |

@@ -52,11 +52,11 @@
                 android:includeFontPadding="false"
                 android:textColor="#FFF2F2F0"
                 android:textSize="19sp"
-                android:fontFamily="@font/penumbra_medium"
+                android:fontFamily="@font/halo_medium"
                 android:letterSpacing="-0.02" />
         </LinearLayout>
 
-        <!-- Penumbra: every tile but the focused one sits in shadow (alpha set by AppAdapter). -->
+        <!-- Halo: every tile but the focused one sits in shadow (alpha set by AppAdapter). -->
         <View
             android:id="@+id/shade"
             android:layout_width="match_parent"
@@ -88,5 +88,5 @@
         android:translationY="-6dp"
         android:textColor="#FFF2F2F0"
         android:textSize="13sp"
-        android:fontFamily="@font/penumbra_medium" />
+        android:fontFamily="@font/halo_medium" />
 </FrameLayout>

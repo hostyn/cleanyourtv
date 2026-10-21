@@ -767,7 +767,7 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
                 shade.animate().cancel();
                 sheen.animate().cancel();
                 name.animate().cancel();
-                // Penumbra focus (DESIGN.md): the tile lifts, grows and casts its shadow; the shade over it
+                // Halo focus (DESIGN.md): the tile lifts, grows and casts its shadow; the shade over it
                 // lifts and a sheen lights its top. Elevation is the shadow, drawn by the render thread.
                 float s = focused ? focusScale : 1f;
                 float lift = focused ? -3f * density : 0f;

@@ -25,7 +25,7 @@
         <item name="android:background">@drawable/pill_bg</item>
         <item name="android:textColor">@drawable/pill_text</item>
         <item name="android:textSize">13sp</item>
-        <item name="android:fontFamily">@font/penumbra_medium</item>
+        <item name="android:fontFamily">@font/halo_medium</item>
         <item name="android:letterSpacing">0</item>
         <item name="android:drawablePadding">0dp</item>
         <item name="android:drawableTint">@drawable/pill_text</item>

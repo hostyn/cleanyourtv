@@ -11,7 +11,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 /**
  * Spaces the favourites (dock) row from the grid and draws the "Apps" heading in the gap (DESIGN.md, Layout).
- * No band behind the dock: in Penumbra the favourites stand on the ground like every other tile.
+ * No band behind the dock: in Halo the favourites stand on the ground like every other tile.
  */
 public class DockDecoration extends RecyclerView.ItemDecoration {
 
@@ -31,7 +31,7 @@ public class DockDecoration extends RecyclerView.ItemDecoration {
         this.heading = ctx.getString(R.string.apps_heading);
         text.setColor(0xFF9EA3AA);
         text.setTextSize(14 * ctx.getResources().getDisplayMetrics().scaledDensity);
-        text.setTypeface(ctx.getResources().getFont(R.font.penumbra_medium));
+        text.setTypeface(ctx.getResources().getFont(R.font.halo_medium));
         text.setTextAlign(rtl ? Paint.Align.RIGHT : Paint.Align.LEFT);
     }
 

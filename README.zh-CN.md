@@ -275,4 +275,4 @@ TV_HOST=192.168.1.50 tools/restore.sh "examples/你的机型/debloat.txt" com.go
 
 ## 许可证
 
-项目采用 [MIT 许可证](LICENSE)。Mona Sans 字体（子集化并按其保留字体名称要求更名为 Penumbra Sans）采用 [SIL Open Font License](launcher/FONT-LICENSE-OFL.txt)。
+项目采用 [MIT 许可证](LICENSE)。Mona Sans 字体（子集化并按其保留字体名称要求更名为 Halo Sans）采用 [SIL Open Font License](launcher/FONT-LICENSE-OFL.txt)。

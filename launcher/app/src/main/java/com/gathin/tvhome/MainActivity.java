@@ -315,7 +315,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         sourcePanelAction = cfg.sourcePanelAction;
 
         root = findViewById(R.id.root);
-        // Penumbra ground unless a theme picked its own background colour.
+        // Halo ground unless a theme picked its own background colour.
         if (cfg.backgroundColor == 0xFF000000) root.setBackgroundResource(R.drawable.ground);
         else root.setBackgroundColor(cfg.backgroundColor);
         // root fills the window with an opaque colour (Config keeps background_color opaque), so the window's own
@@ -581,7 +581,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         getWindow().getDecorView().getViewTreeObserver().addOnGlobalFocusChangeListener((oldF, newF) -> {
             boolean onTile = newF != null && newF.getId() == R.id.card;
             if (!onTile) hideGlass();
-            // Penumbra: the tiles sink deeper into shadow while focus is up in the top bar.
+            // Halo: the tiles sink deeper into shadow while focus is up in the top bar.
             boolean onTopBar = newF != null && newF.getParent() == btnInputs.getParent();
             AppAdapter.setRestShade(grid, onTopBar ? AppAdapter.SHADE_TOP_BAR : AppAdapter.SHADE);
             if (onTopBar && !cinematic) ambient.animate().alpha(0.35f).setDuration(260).start();
@@ -1436,7 +1436,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         ambientColor = color;
         BitmapDrawable glow = (BitmapDrawable) ambient.getBackground();
         if (glow == null) {
-            // Cinematic: a full-screen wash at 16:9. Penumbra: a square stretched into the ellipse of the view, so
+            // Cinematic: a full-screen wash at 16:9. Halo: a square stretched into the ellipse of the view, so
             // the light reaches zero before every edge instead of being cut off at the top and bottom.
             int w = cinematic ? 480 : 256;
             int h = cinematic ? 270 : 256;
@@ -1453,7 +1453,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                         new float[]{0f, 0.5f, 1f},
                         Shader.TileMode.CLAMP));
             } else {
-                // Penumbra: an ellipse of light centred in the view, which placeAmbient keeps under the focused
+                // Halo: an ellipse of light centred in the view, which placeAmbient keeps under the focused
                 // tile; about 16% of the app's colour at its heart (DESIGN.md, Colour: glow).
                 paint.setShader(new RadialGradient(
                         w * 0.5f, h * 0.5f, w * 0.5f,
@@ -1547,7 +1547,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         else glass.setAlpha(0f);
     }
 
-    // ---- Penumbra helpers -------------------------------------------------------------------------
+    // ---- Halo helpers -------------------------------------------------------------------------
 
     /** Size of the pool of light under the focused tile (DESIGN.md, Colour: glow). */
     private static final float AMBIENT_W_DP = 560, AMBIENT_H_DP = 320;

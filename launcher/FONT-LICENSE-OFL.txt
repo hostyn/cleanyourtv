@@ -1,5 +1,5 @@
-The launcher's typeface, res/font/penumbra_sans.ttf, is Mona Sans, subset to Latin, Vietnamese and
-punctuation, fixed at width 100 with weights 200-600, and renamed "Penumbra Sans" because "Mona" is a
+The launcher's typeface, res/font/halo_sans.ttf, is Mona Sans, subset to Latin, Vietnamese and
+punctuation, fixed at width 100 with weights 200-600, and renamed "Halo Sans" because "Mona" is a
 Reserved Font Name under the licence below.
 
 Copyright 2022 The Mona Sans Project Authors (https://github.com/github/mona-sans), with Reserved Font Name "Mona"
