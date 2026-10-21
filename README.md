@@ -56,12 +56,19 @@ screenshots pulled from the TV. With this repo as context it takes about fifteen
 
 ## What you get
 
-- **A pitch-black home** with a dock of your four favourite apps in a rounded band, where Apple TV puts it.
-- **A top shelf** naming the focused app in large type, with an ambient glow in a colour taken from its artwork.
-- **The rest of your apps in a grid** that slides up when you press Down.
-- **One floating glass highlight** that springs from tile to tile. The focused tile lifts and shows its name.
-- **Three frosted buttons**: Inputs (HDMI ports under the names you gave them in the TV's settings, AV, Live TV), Wi-Fi or Ethernet with the network name, Settings.
-- **A greeting, a thin clock and the date** in [Outfit](https://fonts.google.com/specimen/Outfit), and a matching Clock screensaver. Set `show_stats` in config or a theme for one line under the clock: CPU, free memory and free storage. It stays off unless you turn it on, and it refreshes only while Home is on screen.
+![Home: a thin clock and the date, five favourites with TV first, the other apps in a grid below](docs/penumbra-home.jpg)
+
+- **A near-black home** with your favourite apps first and large, three to six of them (`dock_size`), the rest
+  in a grid of smaller tiles that slides up when you press Down. Its look is written down in
+  [`DESIGN.md`](DESIGN.md).
+- **Focus is light**: the focused tile lifts, grows, casts a shadow and throws a pool of its own colour on the
+  ground behind it, while every other tile sits in shadow. Its name shows underneath.
+- **Inputs as apps**: pin the HDMI port your console or streaming box lives on, or Live TV, as a tile among
+  your favourites (`input_tiles`).
+- **Three quiet controls**: Inputs (HDMI ports under the names you gave them in the TV's settings, AV, Live TV),
+  Wi-Fi or Ethernet, Settings. Bare icons until focused, when each opens into a chip with its label and the
+  network name.
+- **A thin clock and the date** in [Mona Sans](https://github.com/github/mona-sans), and a matching Clock screensaver. Set `show_stats` in config or a theme for one line under the clock: CPU, free memory and free storage. It stays off unless you turn it on, and it refreshes only while Home is on screen.
 - **Themes** that change colours, wallpaper, dock and columns without a rebuild, and **module cards** that let other apps plug a tile in, only with your say-so.
 
 And a TV that stops working against you: no sponsored rows, no "Discover" nags, no analytics
@@ -441,5 +448,5 @@ Security issues: report them privately through the [Security tab](https://github
 
 ## Licence
 
-MIT, see [`LICENSE`](LICENSE). The Outfit typeface is under the SIL Open Font License, see
-`launcher/FONT-LICENSE-OFL.txt`.
+MIT, see [`LICENSE`](LICENSE). The typeface, Mona Sans (shipped subset and renamed Penumbra Sans, as its
+Reserved Font Name requires), is under the SIL Open Font License, see `launcher/FONT-LICENSE-OFL.txt`.
