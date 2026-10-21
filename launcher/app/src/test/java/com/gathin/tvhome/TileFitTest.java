@@ -38,10 +38,13 @@ public class TileFitTest {
     }
 
     @Test
-    public void oneRowUnderATitledDockFits() {
+    public void oneRowUnderATitledDockFitsOrStopsAtTheFloor() {
+        // The dock's offsets include the "Apps" heading under it (DockDecoration.BELOW_DP), so with the title
+        // on as well one row may only fit at the floor size; above the floor it must fit.
+        int floor = Math.round(AppAdapter.tileWidthPx(INNER, 4, D) * AppAdapter.MIN_HEIGHT_FIT);
         int w = AppAdapter.tileWidthPx(INNER, GRID_H, 4, 1, true, true, D);
         assertTrue(w < AppAdapter.tileWidthPx(INNER, 4, D));
-        assertTrue(height(w, 1, true) <= GRID_H + 2);
+        assertTrue(w == floor || height(w, 1, true) <= GRID_H + 2);
     }
 
     @Test

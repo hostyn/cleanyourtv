@@ -24,7 +24,6 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewOutlineProvider;
 import android.view.animation.DecelerateInterpolator;
-import android.view.animation.OvershootInterpolator;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -55,12 +54,14 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         boolean onTileVerticalKey(int position, int keyCode);
 
         void onLibraryRequested();
+        /** An input tile (input_tiles) was pressed: switch to that input. */
+        void onInputTileOpened(InputTile tile);
         void onLibraryFocused();
         void onLibraryUp();
     }
 
     static final class Entry {
-        static final int APP = 0, HOME_SETTINGS = 1, CARD = 2, EMPTY = 3;
+        static final int APP = 0, HOME_SETTINGS = 1, CARD = 2, EMPTY = 3, INPUT = 4;
 
         final int kind;
         final String label;
@@ -72,6 +73,8 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         final String name;
         /** Ambient glow colour; 0 until sampled from the banner, or the card's accent from the start. */
         int ambient;
+        /** The input an INPUT tile switches to; null for every other kind. */
+        InputTile inputTile;
 
         Entry(String label, ComponentName component, Drawable banner, Drawable icon) {
             this(APP, label, component, banner, icon, null, 0);
@@ -89,7 +92,12 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         }
     }
 
-    static final float FOCUS_SCALE = 1.10f;
+    /** Focus zoom of a grid tile and of a favourite (DESIGN.md, Tile). */
+    static final float FOCUS_SCALE = 1.11f, DOCK_FOCUS_SCALE = 1.075f;
+    /** Shadow over every unfocused tile; deeper while focus is in the top bar (see setRestShade). */
+    static final float SHADE = 0.42f, SHADE_TOP_BAR = 0.6f;
+    private static float restShade = SHADE;
+    static final int TYPE_TILE = 0, TYPE_LIBRARY = 1, TYPE_DOCK = 2;
     /** Design size of a tile (dp); tiles shrink from here when the columns don't fit, see tileWidthPx. */
     static final float DESIGN_W_DP = 180f, DESIGN_H_DP = 101f;
 
@@ -107,6 +115,17 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
     static int tileHeightPx(int tileWidthPx) {
         return Math.round(tileWidthPx * DESIGN_H_DP / DESIGN_W_DP);
+    }
+
+    /**
+     * Favourite tile width: the dock row's width shared by dock_size tiles, less room for their zoom. No design
+     * cap, unlike grid tiles: three favourites are meant to be big.
+     */
+    static int dockTileWidthPx(int innerWidthPx, int dockSize, float density) {
+        if (innerWidthPx <= 0 || dockSize <= 0) return Math.round(DESIGN_W_DP * density);
+        int cell = innerWidthPx / dockSize;
+        int fit = (int) ((cell - 14 * density) / DOCK_FOCUS_SCALE);
+        return Math.max(Math.round(80 * density), fit);
     }
 
     /** Height of one grid item: the tile, the name label under it and the item's own padding. */
@@ -129,8 +148,8 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
     /** item_app.xml: 8dp padding above and below, a 7dp gap and the 22dp name label under the tile. */
     static final float ITEM_EXTRA_DP = 45;
-    /** DockDecoration's offsets above and below the dock row. */
-    static final float DOCK_EXTRA_DP = 6 + 12;
+    /** DockDecoration's offsets above and below the dock row (below it: the gap and the "Apps" heading). */
+    static final float DOCK_EXTRA_DP = 6 + DockDecoration.BELOW_DP;
     /** Room kept under the last row rows_below_dock asks for (MainActivity places the dock with the same). */
     static final float BOTTOM_ROOM_DP = 30;
     /** Room kept above the dock for the dock title (48sp hero name plus its 40dp gap) when dock_title is on. */
@@ -172,6 +191,10 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
     private boolean reordering;
     private final TileListener listener;
     private final int dockSize;
+    /** Tiles per row in the grid below the favourites (config columns). */
+    private final int gridColumns;
+    /** Input tiles that can be opened on this TV (MainActivity checks them against TvInputManager). */
+    private List<InputTile> inputTiles = Collections.emptyList();
     /** config dock_row: false makes the dock apps the first tiles of one plain grid (names shown, no empty slots). */
     private final boolean dockRow;
     /** cinematic_home: only then does a launch record the last-opened app the shelf uses. */
@@ -202,6 +225,7 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         this.ctx = ctx;
         this.listener = listener;
         this.dockSize = dockSize;
+        this.gridColumns = cfg.columns;
         this.favourites = cfg.dockApps;
         this.fillDock = cfg.fillDock;
         this.hidden = new HashSet<>(cfg.hiddenApps);
@@ -271,6 +295,12 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
                 fresh.add(new Entry(label, component, banner, icon));
             }
         }
+        for (InputTile tile : inputTiles) {
+            Entry e = new Entry(Entry.INPUT, tile.label, new ComponentName(tile.key(), "input"), null,
+                    ctx.getDrawable(tile.iconRes()), inputCaption(tile), InputTile.LIVE_TV.equals(tile.input) ? 0xFF9AA3AD : 0xFF7C8CFF);
+            e.inputTile = tile;
+            fresh.add(e);
+        }
         Collections.sort(fresh, (a, b) -> {
             // The owner's own order first; tiles it does not know (new installs) follow by the rule below.
             int saved = Order.compare(savedRanks, a.component.flattenToShortString(), b.component.flattenToShortString());
@@ -281,9 +311,11 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
                 if (fb < 0) return -1;
                 return Integer.compare(fa, fb);
             }
-            // Cards come right after the configured dock apps, before the alphabetical grid.
+            // Cards come right after the configured dock apps, then input tiles, before the alphabetical grid.
             boolean ca = a.kind == Entry.CARD, cb = b.kind == Entry.CARD;
             if (ca != cb) return ca ? -1 : 1;
+            boolean ia = a.kind == Entry.INPUT, ib = b.kind == Entry.INPUT;
+            if (ia != ib) return ia ? -1 : 1;
             return a.label.compareToIgnoreCase(b.label);
         });
         // Retain the optional Default-home tile until dependent tile-ordering work is merged.
@@ -303,6 +335,18 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         items.clear();
         items.addAll(fresh);
         notifyDataSetChanged();
+    }
+
+    /** Input tiles to show from the next reload(): only those MainActivity found on this TV. */
+    void setInputTiles(List<InputTile> tiles) {
+        inputTiles = tiles;
+    }
+
+    /** "HDMI 2" under a tile labelled "PS5"; nothing when the label already is the port, or for Live TV. */
+    private static String inputCaption(InputTile tile) {
+        if (InputTile.LIVE_TV.equals(tile.input) || tile.label.equalsIgnoreCase(tile.input)) return null;
+        int hdmi = InputTile.hdmiNumber(tile.input);
+        return hdmi > 0 ? "HDMI " + hdmi : null;
     }
 
     /** A banner_* drawable bundled with the launcher, or null for none or a name that is not one. */
@@ -341,7 +385,7 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
     @NonNull
     @Override
     public RecyclerView.ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        if (viewType == 1) {
+        if (viewType == TYPE_LIBRARY) {
             View row = LayoutInflater.from(ctx).inflate(R.layout.row_app_library, parent, false);
             View button = row.findViewById(R.id.btnLibrary);
             button.setOnClickListener(v -> listener.onLibraryRequested());
@@ -358,7 +402,18 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         float density = parent.getResources().getDisplayMetrics().density;
         int width = parent.getWidth() > 0 ? parent.getWidth() : parent.getMeasuredWidth();
         int inner = width - parent.getPaddingLeft() - parent.getPaddingRight();
-        int w = tileWidthPx(inner, parent.getHeight(), dockSize, rowsBelowDock, dockTitle, dockRow, density), h = tileHeightPx(w);
+        boolean dock = viewType == TYPE_DOCK;
+        int w = dock ? dockTileWidthPx(inner, dockSize, density)
+                : tileWidthPx(inner, parent.getHeight(), gridColumns, rowsBelowDock, dockTitle, dockRow, density);
+        int h = tileHeightPx(w);
+        if (!dock) {
+            // A grid tile without a banner: a smaller icon and name than a favourite's (DESIGN.md, Input tile).
+            View icon = v.findViewById(R.id.icon);
+            ViewGroup.LayoutParams iconLp = icon.getLayoutParams();
+            iconLp.width = iconLp.height = Math.round(20 * density);
+            icon.setLayoutParams(iconLp);
+            ((TextView) v.findViewById(R.id.label)).setTextSize(14f);
+        }
         View card = v.findViewById(R.id.card);
         ViewGroup.LayoutParams cardLp = card.getLayoutParams();
         cardLp.width = w;
@@ -366,8 +421,9 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         card.setLayoutParams(cardLp);
         View name = v.findViewById(R.id.name);
         ViewGroup.MarginLayoutParams nameLp = (ViewGroup.MarginLayoutParams) name.getLayoutParams();
-        nameLp.width = w;
-        nameLp.topMargin = h + Math.round((dockRow ? 7 : 4) * density);
+        // The name may use the whole cell, wider than a small grid tile: "Reproductor de medios" fits there.
+        nameLp.width = ViewGroup.LayoutParams.MATCH_PARENT;
+        nameLp.topMargin = h + Math.round((dockRow ? 9 : 4) * density);
         if (!dockRow) {
             // Compact spacing (COMPACT_ITEM_EXTRA_DP): 4dp item padding and a 20dp name instead of 8dp and 22dp.
             nameLp.height = Math.round(20 * density);
@@ -375,7 +431,7 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             v.setPadding(v.getPaddingLeft(), pad, v.getPaddingRight(), pad);
         }
         name.setLayoutParams(nameLp);
-        return new Holder(v, listener, animations, advancedEffects, reducedMotion);
+        return new Holder(v, listener, animations, advancedEffects, reducedMotion, dock);
     }
 
     @Override
@@ -390,6 +446,7 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             h.name.setVisibility(View.INVISIBLE);
             h.banner.setImageDrawable(null);
             h.icon.setImageDrawable(null);
+            h.iconBlock.setVisibility(View.GONE);
             h.card.setOnClickListener(null);
             h.card.setOnLongClickListener(null);
             return;
@@ -397,33 +454,33 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         h.card.setVisibility(View.VISIBLE);
         h.card.setFocusable(true);
         h.name.setText(e.name);
-        h.name.setVisibility(dockRow && position < dockSize ? View.INVISIBLE : View.VISIBLE);   // the dock has no labels
+        h.name.setVisibility(View.VISIBLE);
         boolean focused = h.card.isFocused();   // a rebind after reload() can hit the focused tile
+        float density = ctx.getResources().getDisplayMetrics().density;
         h.name.setAlpha(focused ? 1f : 0f);
-        h.card.setScaleX(focused && animations ? focusScale() : 1f);
-        h.card.setScaleY(focused && animations ? focusScale() : 1f);
-        h.card.setTranslationY(focused && advancedEffects ? -4f * ctx.getResources().getDisplayMetrics().density : 0f);
-        h.card.setTranslationZ(focused && advancedEffects ? 8f * ctx.getResources().getDisplayMetrics().density : 0f);
-        h.banner.setScaleX(focused && advancedEffects ? 1.035f : 1f);
-        h.banner.setScaleY(focused && advancedEffects ? 1.035f : 1f);
+        h.card.setScaleX(focused && animations ? h.focusScale : 1f);
+        h.card.setScaleY(focused && animations ? h.focusScale : 1f);
+        h.card.setTranslationY(focused && animations ? -3f * density : 0f);
+        h.card.setTranslationZ(focused ? 12f * density : 0f);
+        h.shade.setAlpha(focused ? 0f : restShade);
+        h.sheen.setAlpha(focused ? 1f : 0f);
         // A fully opaque banner covers the whole card (centerCrop), so the card's own fill under it is drawn for
         // nothing on every frame; keep it under banners with transparent parts and under icon tiles.
         h.card.setBackground(e.banner != null && e.banner.getOpacity() == PixelFormat.OPAQUE ? null : h.cardBackground);
         if (e.banner != null) {
             h.banner.setImageDrawable(e.banner);
             h.banner.setVisibility(View.VISIBLE);
-            h.icon.setVisibility(View.GONE);
-            h.label.setVisibility(View.GONE);
+            h.iconBlock.setVisibility(View.GONE);
         } else {
             h.banner.setImageDrawable(null);
             h.banner.setVisibility(View.GONE);
             h.icon.setImageDrawable(e.icon);
-            h.icon.setVisibility(View.VISIBLE);
             h.label.setText(e.label);
-            h.label.setVisibility(View.VISIBLE);
+            h.iconBlock.setVisibility(View.VISIBLE);
         }
         h.card.setOnClickListener(v -> launch(e));
         h.card.setOnLongClickListener(v -> {
+            if (e.kind == Entry.INPUT) return true;   // no app to show details for
             Intent i = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + e.pkg));
             i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             try {
@@ -436,6 +493,10 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
     /** Opens the tile's activity by explicit component, with no extras: a card can name nothing else. */
     private void launch(Entry e) {
+        if (e.kind == Entry.INPUT) {
+            listener.onInputTileOpened(e.inputTile);
+            return;
+        }
         if (e.kind == Entry.HOME_SETTINGS) {
             ctx.startActivity(new Intent(ctx, HomeSettingsActivity.class)
                     .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
@@ -473,7 +534,10 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
     boolean isLibraryAt(int position) { return showLibrary && position == items.size(); }
 
-    @Override public int getItemViewType(int position) { return isLibraryAt(position) ? 1 : 0; }
+    @Override public int getItemViewType(int position) {
+        if (isLibraryAt(position)) return TYPE_LIBRARY;
+        return dockRow && position < dockSize ? TYPE_DOCK : TYPE_TILE;
+    }
 
     boolean containsPackage(String pkg) {
         for (Entry entry : items) if (entry.pkg.equals(pkg)) return true;
@@ -566,8 +630,26 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         return e.banner != null ? e.banner : e.icon;
     }
 
+    /** A favourite's focus zoom; grid tiles zoom by FOCUS_SCALE. */
     float focusScale() {
-        return !animations ? 1f : advancedEffects ? 1.12f : 1.10f;
+        return !animations ? 1f : DOCK_FOCUS_SCALE;
+    }
+
+    /**
+     * The shadow every unfocused tile sits in: SHADE normally, SHADE_TOP_BAR while focus is in the top bar.
+     * Applies to the tiles on screen now and to every tile bound later.
+     */
+    static void setRestShade(RecyclerView grid, float shade) {
+        if (restShade == shade) return;
+        restShade = shade;
+        for (int i = 0; i < grid.getChildCount(); i++) {
+            RecyclerView.ViewHolder vh = grid.getChildViewHolder(grid.getChildAt(i));
+            if (!(vh instanceof Holder)) continue;
+            Holder h = (Holder) vh;
+            if (h.card.isFocused()) continue;
+            h.shade.animate().cancel();
+            h.shade.animate().alpha(shade).setDuration(260).start();
+        }
     }
 
     /** A vivid colour sampled from the app's banner (or icon), cached per entry; a card's accent when it set one. */
@@ -623,9 +705,9 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         return Color.HSVToColor(hsv);
     }
 
-    /** Corner radius for a tile of this width: 16dp at the design width, proportionally less when smaller. */
+    /** Corner radius for a tile of this width: 8dp, proportionally less below 120dp (DESIGN.md, Tile). */
     static float cornerRadius(int tileWidthPx, float density) {
-        return 16f * density * Math.min(1f, tileWidthPx / (DESIGN_W_DP * density));
+        return 8f * density * Math.min(1f, tileWidthPx / (120f * density));
     }
 
     static final class Holder extends RecyclerView.ViewHolder {
@@ -635,20 +717,29 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         final ImageView banner;
         final ImageView icon;
         final TextView label;
+        final View iconBlock;
+        final View shade;
+        final View sheen;
         final TextView name;
+        /** This holder's zoom on focus: a favourite's or a grid tile's. */
+        final float focusScale;
         final boolean animations;
         final boolean advancedEffects;
         final boolean reducedMotion;
 
         Holder(View v, TileListener listener, boolean animations, boolean advancedEffects,
-               boolean reducedMotion) {
+               boolean reducedMotion, boolean dock) {
             super(v);
             card = v.findViewById(R.id.card);
             cardBackground = card.getBackground();
             banner = v.findViewById(R.id.banner);
             icon = v.findViewById(R.id.icon);
             label = v.findViewById(R.id.label);
+            iconBlock = v.findViewById(R.id.iconBlock);
+            shade = v.findViewById(R.id.shade);
+            sheen = v.findViewById(R.id.sheen);
             name = v.findViewById(R.id.name);
+            focusScale = !animations ? 1f : dock ? DOCK_FOCUS_SCALE : FOCUS_SCALE;
             this.animations = animations;
             this.advancedEffects = advancedEffects;
             this.reducedMotion = reducedMotion;
@@ -673,42 +764,45 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
             card.setOnFocusChangeListener((view, focused) -> {
                 view.animate().cancel();
-                banner.animate().cancel();
+                shade.animate().cancel();
+                sheen.animate().cancel();
                 name.animate().cancel();
-                float scale = !animations ? 1f : advancedEffects ? 1.12f : 1.10f;
-                float s = focused ? scale : 1f;
+                // Penumbra focus (DESIGN.md): the tile lifts, grows and casts its shadow; the shade over it
+                // lifts and a sheen lights its top. Elevation is the shadow, drawn by the render thread.
+                float s = focused ? focusScale : 1f;
+                float lift = focused ? -3f * density : 0f;
+                float z = focused ? 12f * density : 0f;
+                float shadeTo = focused ? 0f : restShade;
+                float sheenTo = focused ? 1f : 0f;
                 if (!animations) {
                     view.setScaleX(1f);
                     view.setScaleY(1f);
                     view.setTranslationY(0f);
-                    view.setTranslationZ(0f);
-                    banner.setScaleX(1f);
-                    banner.setScaleY(1f);
+                    view.setTranslationZ(z);
+                    shade.setAlpha(shadeTo);
+                    sheen.setAlpha(sheenTo);
                     name.setAlpha(focused ? 1f : 0f);
                     name.setTranslationY(0f);
                 } else if (reducedMotion) {
-                    view.animate().scaleX(s).scaleY(s)
-                            .translationY(focused && advancedEffects ? -4f * density : 0f)
-                            .translationZ(focused && advancedEffects ? 8f * density : 0f)
+                    view.animate().scaleX(s).scaleY(s).translationY(lift).translationZ(z)
                             .setDuration(focused ? 120 : 80)
                             .setInterpolator(new DecelerateInterpolator())
-                            .withLayer().start();
+                            .start();
+                    shade.animate().alpha(shadeTo).setDuration(100).start();
+                    sheen.animate().alpha(sheenTo).setDuration(100).start();
                     name.animate().alpha(focused ? 1f : 0f).setDuration(100).start();
                     // Same place as the full motion's slide ends: the layout's -6dp is only its starting point, and
                     // left there the name overlaps the zoomed tile.
                     // Only on focus: snapping it back to -6dp while it fades out would jump it up over the tile.
                     if (focused) name.setTranslationY(density * 4f);
                 } else {
-                    view.animate().scaleX(s).scaleY(s)
-                            .translationY(focused && advancedEffects ? -4f * density : 0f)
-                            .translationZ(focused && advancedEffects ? 8f * density : 0f)
-                            .setDuration(advancedEffects ? (focused ? 220 : 170) : (focused ? 260 : 180))
-                            .setInterpolator(new OvershootInterpolator(focused ? (advancedEffects ? 0.7f : 1.6f) : 0f))
-                            .withLayer().start();
-                    if (advancedEffects) {
-                        banner.animate().scaleX(focused ? 1.035f : 1f).scaleY(focused ? 1.035f : 1f)
-                                .setDuration(280).start();
-                    }
+                    // Exponential ease-out, no overshoot: the tile settles instead of bouncing.
+                    view.animate().scaleX(s).scaleY(s).translationY(lift).translationZ(z)
+                            .setDuration(focused ? 300 : 220)
+                            .setInterpolator(new DecelerateInterpolator(2.2f))
+                            .start();
+                    shade.animate().alpha(shadeTo).setDuration(260).start();
+                    sheen.animate().alpha(sheenTo).setDuration(300).start();
                     name.animate().alpha(focused ? 1f : 0f)
                             .translationY(focused ? density * 4f : -density * 6f)
                             .setDuration(220).start();

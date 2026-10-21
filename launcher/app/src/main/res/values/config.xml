@@ -103,9 +103,9 @@
          VPN you use. Empty: the pill opens Wi-Fi settings. The green VPN badge shows for any VPN either way;
          with an app set here, a red "VPN off" badge also shows while no VPN is up. -->
     <string name="vpn_app" translatable="false"></string>
-    <!-- The dock as its own row: a lighter band, no names under the tiles, parked low on the screen with the top
-         shelf above it. false makes the dock apps simply the first tiles of one plain grid (still in dock_apps
-         order, no empty slots), with names under every tile and the glow behind every focused tile. -->
+    <!-- The favourites as their own row of larger tiles (dock_size of them), with the "Apps" heading and the grid
+         below. false makes the dock apps simply the first tiles of one plain grid (still in dock_apps order, no
+         empty slots), all the same size. -->
     <bool name="dock_row">true</bool>
     <!-- A reorder button (two arrows) in the top bar. Off by default: reordering is also in the Settings
          button's long-press menu, so it needs no extra button on screen. -->
@@ -113,15 +113,25 @@
 
     <!-- Grid rows left visible under the dock on the home screen. 0 = dock sits at the very bottom. Tiles shrink if
          the dock, its title and this many rows would not otherwise fit the screen height. -->
-    <integer name="rows_below_dock">0</integer>
+    <integer name="rows_below_dock">1</integer>
 
     <!-- The focused dock app's name in large type above the dock. false keeps only the glow, which leaves room
          for bigger tiles when rows_below_dock is 2 or 3. -->
-    <bool name="dock_title">true</bool>
+    <bool name="dock_title">false</bool>
 
-    <!-- Tiles per row in the grid; the dock always has this many slots. Tiles are 180dp wide at 4 columns and
-         shrink to fit from 5 up (about 144dp at 5, 117dp at 6 on a 1080p TV). -->
-    <integer name="columns">4</integer>
+    <!-- Favourites: the large tiles of the dock row, 3 to 6. They share the row's width, so 3 are the largest. -->
+    <integer name="dock_size">4</integer>
+
+    <!-- Tiles per row in the grid of the other apps, below the favourites. Smaller tiles than the dock's: about
+         115dp wide at 6 columns on a 1080p TV. -->
+    <integer name="columns">6</integer>
+
+    <!-- TV inputs shown as tiles, like apps: "input|label|icon". input is an HDMI port as the Inputs menu names it
+         ("HDMI 2"), an input id from `tv_input` in dumpsys, or live_tv for the Live TV app. icon is one of gamepad,
+         tv, box, computer, player (default: input). Put "input:<input>" in dock_apps to make one a favourite, e.g.
+         <item>HDMI 2|PS5|gamepad</item> and "input:HDMI 2" in dock_apps. An input the TV does not have is skipped. -->
+    <string-array name="input_tiles" translatable="false">
+    </string-array>
 
     <!-- Basic motion is on; advanced effects are opt-in in the launcher's own Settings screen. -->
     <bool name="animations">true</bool>

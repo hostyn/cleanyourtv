@@ -55,6 +55,10 @@ final class Config {
     final String sourcePanelAction;
     final String inputAction;
     final int columns;
+    /** Favourites in the dock row, 3 to 6 (config.xml, dock_size). */
+    final int dockSize;
+    /** TV inputs shown as tiles (config.xml, input_tiles). */
+    final List<InputTile> inputTiles;
     final boolean animations;
     final boolean advancedEffects;
     final int rowsBelowDock;
@@ -114,7 +118,9 @@ final class Config {
                    int[] settingsKeycodes, boolean settingsKeyPanel, boolean wallpaperEnabled, File wallpaper, List<File> wallpapers,
                    int wallpaperRotationMinutes, int wallpaperDim, boolean overlayApplied,
                    Festival festival, int[] inputKeycodes, List<String> appKeys,
-                   List<RaceWeekend.Race> raceCalendar, boolean cinematicHome) {
+                   List<RaceWeekend.Race> raceCalendar, boolean cinematicHome, int dockSize, List<InputTile> inputTiles) {
+        this.dockSize = dockSize;
+        this.inputTiles = Collections.unmodifiableList(inputTiles);
         this.inputKeycodes = inputKeycodes;
         this.appKeys = Collections.unmodifiableList(appKeys);
         this.dockApps = Collections.unmodifiableList(dockApps);
@@ -177,6 +183,8 @@ final class Config {
         String panelAction = res.getString(R.string.source_panel_action).trim();
         String inputAction = res.getString(R.string.input_action).trim();
         int columns = res.getInteger(R.integer.columns);
+        int dockSize = res.getInteger(R.integer.dock_size);
+        List<InputTile> inputTiles = InputTile.parseAll(Arrays.asList(res.getStringArray(R.array.input_tiles)));
         int rowsBelow = res.getInteger(R.integer.rows_below_dock);
         boolean animations = res.getBoolean(R.bool.animations);
         boolean advancedEffects = res.getBoolean(R.bool.advanced_effects);
@@ -217,6 +225,8 @@ final class Config {
             panelAction = string(json, "source_panel_action", panelAction);
             inputAction = string(json, "input_action", inputAction);
             columns = integer(json, "columns", columns, 1, 8);
+            dockSize = integer(json, "dock_size", dockSize, InputTile.MIN_DOCK, InputTile.MAX_DOCK);
+            inputTiles = inputTiles(json, inputTiles);
             rowsBelow = integer(json, "rows_below_dock", rowsBelow, 0, 3);
             animations = bool(json, "animations", animations);
             advancedEffects = bool(json, "advanced_effects", advancedEffects);
@@ -291,7 +301,29 @@ final class Config {
                 shamsi, greetingName, moduleCards, reducedMotion, dockTitle, dockRow, reorderButton, vpn, homeSettings, showStats, library, background,
                 Math.max(0, Math.min(100, skyIntensity)), settingsKeycodes, settingsKeyPanel, wallpaperEnabled, wallpaper,
                 wallpapers, rotationMinutes, wallpaperDim, applied,
-                festival, inputKeycodes, appKeys, json == null ? Collections.emptyList() : raceCalendar(json), cinematic);
+                festival, inputKeycodes, appKeys, json == null ? Collections.emptyList() : raceCalendar(json), cinematic,
+                Math.max(InputTile.MIN_DOCK, Math.min(InputTile.MAX_DOCK, dockSize)), inputTiles);
+    }
+
+    /**
+     * {@code "input_tiles": [{"input": "HDMI 2", "label": "PS5", "icon": "gamepad"}, "live_tv|TV|tv"]}: objects or
+     * the same "input|label|icon" strings as config.xml. A list with nothing usable in it keeps the fallback.
+     */
+    private static List<InputTile> inputTiles(JSONObject json, List<InputTile> fallback) {
+        JSONArray list = json.optJSONArray("input_tiles");
+        if (list == null) return fallback;
+        List<InputTile> out = new ArrayList<>();
+        for (int i = 0; i < list.length(); i++) {
+            Object item = list.opt(i);
+            InputTile tile = null;
+            if (item instanceof String) tile = InputTile.parse((String) item);
+            else if (item instanceof JSONObject) {
+                JSONObject o = (JSONObject) item;
+                tile = InputTile.of(o.optString("input", ""), o.optString("label", ""), o.optString("icon", ""));
+            }
+            if (tile != null) out.add(tile);
+        }
+        return out;
     }
 
     /**

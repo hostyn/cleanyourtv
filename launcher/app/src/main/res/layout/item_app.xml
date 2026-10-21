@@ -23,30 +23,56 @@
             android:scaleType="centerCrop"
             android:contentDescription="@null" />
 
-        <ImageView
-            android:id="@+id/icon"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:layout_gravity="center"
-            android:layout_marginBottom="14dp"
-            android:visibility="gone"
-            android:contentDescription="@null" />
-
-        <TextView
-            android:id="@+id/label"
+        <!-- No banner (an input tile, or an app with only an icon): its icon above its name, centred like a logo. -->
+        <LinearLayout
+            android:id="@+id/iconBlock"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_gravity="bottom"
-            android:paddingStart="10dp"
-            android:paddingEnd="10dp"
-            android:paddingBottom="8dp"
-            android:gravity="center"
-            android:singleLine="true"
-            android:ellipsize="end"
-            android:textColor="#FFFFFFFF"
-            android:textSize="13sp"
-            android:fontFamily="@font/outfit"
-            android:visibility="gone" />
+            android:layout_gravity="center"
+            android:orientation="vertical"
+            android:gravity="center_horizontal"
+            android:visibility="gone">
+
+            <ImageView
+                android:id="@+id/icon"
+                android:layout_width="29dp"
+                android:layout_height="29dp"
+                android:contentDescription="@null" />
+
+            <TextView
+                android:id="@+id/label"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="5dp"
+                android:paddingStart="10dp"
+                android:paddingEnd="10dp"
+                android:gravity="center"
+                android:singleLine="true"
+                android:ellipsize="end"
+                android:includeFontPadding="false"
+                android:textColor="#FFF2F2F0"
+                android:textSize="19sp"
+                android:fontFamily="@font/penumbra_medium"
+                android:letterSpacing="-0.02" />
+        </LinearLayout>
+
+        <!-- Penumbra: every tile but the focused one sits in shadow (alpha set by AppAdapter). -->
+        <View
+            android:id="@+id/shade"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="#FF000000"
+            android:alpha="0.42"
+            android:importantForAccessibility="no" />
+
+        <!-- Light across the top of the focused tile; hidden on the others. -->
+        <View
+            android:id="@+id/sheen"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@drawable/tile_sheen"
+            android:alpha="0"
+            android:importantForAccessibility="no" />
     </FrameLayout>
 
     <TextView
@@ -60,8 +86,7 @@
         android:ellipsize="end"
         android:alpha="0"
         android:translationY="-6dp"
-        android:textColor="#F2FFFFFF"
-        android:textSize="14sp"
-        android:fontFamily="@font/outfit_medium"
-        android:letterSpacing="0.02" />
+        android:textColor="#FFF2F2F0"
+        android:textSize="13sp"
+        android:fontFamily="@font/penumbra_medium" />
 </FrameLayout>

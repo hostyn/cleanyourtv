@@ -1,31 +1,38 @@
 package com.gathin.tvhome;
 
+import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.Rect;
-import android.graphics.RectF;
 import android.view.View;
 
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
-/** Draws the tvOS style lighter band behind the first (dock) row and adds a gap below it. */
+/**
+ * Spaces the favourites (dock) row from the grid and draws the "Apps" heading in the gap (DESIGN.md, Layout).
+ * No band behind the dock: in Penumbra the favourites stand on the ground like every other tile.
+ */
 public class DockDecoration extends RecyclerView.ItemDecoration {
+
+    /** Offset below the dock row: room for the heading and the gap under it. */
+    static final float BELOW_DP = 44;
 
     private final int dockSize;
     private final float density;
-    private final Paint band = new Paint(Paint.ANTI_ALIAS_FLAG);
-    private final Paint edge = new Paint(Paint.ANTI_ALIAS_FLAG);
-    private final RectF rect = new RectF();
+    private final boolean rtl;
+    private final String heading;
+    private final Paint text = new Paint(Paint.ANTI_ALIAS_FLAG);
 
-    /** @param translucent the cinematic shelf's band: the artwork and the glow show through it. */
-    DockDecoration(int dockSize, float density, boolean translucent) {
+    DockDecoration(Context ctx, int dockSize, float density, boolean rtl) {
         this.dockSize = dockSize;
         this.density = density;
-        band.setColor(translucent ? 0x8C121014 : 0xFF141416);
-        edge.setStyle(Paint.Style.STROKE);
-        edge.setStrokeWidth(density);
-        edge.setColor(translucent ? 0x26FFFFFF : 0x1FFFFFFF);
+        this.rtl = rtl;
+        this.heading = ctx.getString(R.string.apps_heading);
+        text.setColor(0xFF9EA3AA);
+        text.setTextSize(14 * ctx.getResources().getDisplayMetrics().scaledDensity);
+        text.setTypeface(ctx.getResources().getFont(R.font.penumbra_medium));
+        text.setTextAlign(rtl ? Paint.Align.RIGHT : Paint.Align.LEFT);
     }
 
     @Override
@@ -34,40 +41,28 @@ public class DockDecoration extends RecyclerView.ItemDecoration {
         int pos = parent.getChildAdapterPosition(view);
         if (pos >= 0 && pos < dockSize) {
             outRect.top = (int) (6 * density);
-            outRect.bottom = (int) (12 * density);
+            outRect.bottom = (int) (BELOW_DP * density);
         }
     }
 
     @Override
     public void onDraw(@NonNull Canvas c, @NonNull RecyclerView parent, @NonNull RecyclerView.State state) {
-        boolean any = false;
+        RecyclerView.Adapter<?> adapter = parent.getAdapter();
+        if (adapter == null || adapter.getItemCount() <= dockSize) return;   // nothing below the favourites
+        // The heading lines up with the first grid column's tile edge, under the dock row.
+        float bottom = -1, edge = -1;
         for (int i = 0; i < parent.getChildCount(); i++) {
             View child = parent.getChildAt(i);
             int pos = parent.getChildAdapterPosition(child);
-            if (pos < 0 || pos >= dockSize) continue;
-            RecyclerView.ViewHolder vh = parent.getChildViewHolder(child);
-            View card = vh instanceof AppAdapter.Holder ? ((AppAdapter.Holder) vh).card : child.findViewById(R.id.card);
-            if (card == null) continue;
-            float l = child.getLeft() + card.getLeft();
-            float t = child.getTop() + card.getTop() + child.getTranslationY();
-            float r = l + card.getWidth();
-            float b = t + card.getHeight();
-            if (!any) {
-                rect.set(l, t, r, b);
-                any = true;
-            } else {
-                rect.union(l, t, r, b);
+            if (pos < 0) continue;
+            if (pos < dockSize) bottom = Math.max(bottom, child.getBottom() + child.getTranslationY());
+            if (pos == dockSize) {
+                RecyclerView.ViewHolder vh = parent.getChildViewHolder(child);
+                View card = vh instanceof AppAdapter.Holder ? ((AppAdapter.Holder) vh).card : null;
+                if (card != null) edge = rtl ? child.getLeft() + card.getRight() : child.getLeft() + card.getLeft();
             }
         }
-        if (!any) return;
-        float pad = 14 * density;
-        // The band can only draw inside the grid, and the first and last dock tiles sit 12dp in from its
-        // edges: a full 14dp at the sides sliced the rounded ends flat (#454). Keep the sides, with the
-        // 1dp edge line, inside the grid; the top and bottom have room.
-        float side = Math.max(0f, Math.min(pad, Math.min(rect.left, parent.getWidth() - rect.right) - density));
-        rect.inset(-side, -pad);
-        float radius = 26 * density;
-        c.drawRoundRect(rect, radius, radius, band);
-        c.drawRoundRect(rect, radius, radius, edge);
+        if (bottom < 0 || edge < 0) return;
+        c.drawText(heading, edge, bottom + 26 * density, text);
     }
 }

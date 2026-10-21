@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Light across the top of the focused tile: white 12% fading out by 30% of the way down. Subtle on purpose:
+     at 22% it read as a grey band over dark banners (Jellyfin, Apple TV). -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <gradient android:angle="270" android:type="linear"
+        android:startColor="#1FFFFFFF" android:centerColor="#00FFFFFF" android:endColor="#00FFFFFF"
+        android:centerY="0.3" />
+</shape>
