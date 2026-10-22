@@ -1,8 +1,8 @@
 {
   "dock_apps": [
-    "input:live_tv",
     "io.gh.reisxd.tizentube.cobalt",
     "org.jellyfin.androidtv",
+    "ar.tvplayer.tv",
     "com.netflix.ninja",
     "com.amazon.amazonvideo.livingroom"
   ],
@@ -22,10 +22,12 @@
     }
   ],
   "app_banners": [
-    "io.gh.reisxd.tizentube.cobalt=banner_youtube_noads"
+    "io.gh.reisxd.tizentube.cobalt=banner_youtube_noads",
+    "ar.tvplayer.tv=banner_tivimate"
   ],
   "app_labels": [
-    "io.gh.reisxd.tizentube.cobalt=YouTube"
+    "io.gh.reisxd.tizentube.cobalt=YouTube",
+    "ar.tvplayer.tv=TiviMate"
   ],
   "key_bridge": true,
   "app_keys": [
