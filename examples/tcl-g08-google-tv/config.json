@@ -1,5 +1,6 @@
 {
   "dock_apps": [
+    "input:live_tv",
     "io.gh.reisxd.tizentube.cobalt",
     "org.jellyfin.androidtv",
     "com.netflix.ninja",
@@ -10,6 +11,20 @@
     "com.tcl.suspension"
   ],
   "live_tv_package": "com.tcl.tv",
-  "columns": 4,
-  "rows_below_dock": 0
+  "columns": 6,
+  "rows_below_dock": 1,
+  "dock_size": 5,
+  "input_tiles": [
+    {
+      "input": "live_tv",
+      "label": "TV",
+      "icon": "tv"
+    }
+  ],
+  "app_banners": [
+    "io.gh.reisxd.tizentube.cobalt=banner_youtube_noads"
+  ],
+  "app_labels": [
+    "io.gh.reisxd.tizentube.cobalt=YouTube"
+  ]
 }
