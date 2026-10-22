@@ -37,7 +37,8 @@ public class HomeKeyService extends AccessibilityService {
         settingsKeycodes = config.settingsKeycodes;
         settingsPanel = config.settingsKeyPanel;
         appKeys = RemoteKeys.parseAppKeys(config.appKeys);
-        appScancodes = RemoteKeys.parseAppScancodes(config.appKeys);
+        // With key_bridge the scancode entries are KeyBridge's; taking them here too would open the app twice.
+        if (!config.keyBridge) appScancodes = RemoteKeys.parseAppScancodes(config.appKeys);
     }
 
     private boolean isSettingsKey(KeyEvent event) {

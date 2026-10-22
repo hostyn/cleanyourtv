@@ -31,7 +31,8 @@ public class InputKeyService extends AccessibilityService {
         Config config = Config.load(this);
         inputKeycodes = config.inputKeycodes;
         appKeys = RemoteKeys.parseAppKeys(config.appKeys);
-        appScancodes = RemoteKeys.parseAppScancodes(config.appKeys);
+        // With key_bridge the scancode entries are KeyBridge's; taking them here too would open the app twice.
+        if (!config.keyBridge) appScancodes = RemoteKeys.parseAppScancodes(config.appKeys);
     }
 
     private boolean isInputKey(int keyCode) {

@@ -96,6 +96,14 @@
          button doing nothing. Leave empty to omit. -->
     <string-array name="app_keys" translatable="false">
     </string-array>
+    <!-- Serve the "scan:" entries of app_keys without an accessibility service. A key-filtering service makes Android
+         drop key repeats, so holding Volume or an arrow moves one step only (TCL Google TV: it never even sees
+         Volume). With this on, the launcher starts a small getevent script through the TV's own network ADB, which
+         reads the remote in parallel and opens the app; nothing is intercepted. Needs network debugging left on
+         (the script dies when it is switched off, and on reboot, and Home starts it again); the first start asks
+         to allow the launcher's ADB key on screen. "scan:561:settings" opens the TV's Settings. Off by default;
+         a theme can set "key_bridge": true. -->
+    <bool name="key_bridge">false</bool>
 
     <!-- Show the Solar Hijri (Shamsi) date used in Iran and Afghanistan, e.g. "27 Mehr 1405", above the
          Gregorian date. -->

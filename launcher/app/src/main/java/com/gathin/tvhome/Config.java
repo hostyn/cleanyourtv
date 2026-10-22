@@ -105,6 +105,8 @@ final class Config {
     final int[] inputKeycodes;
     /** Remote buttons that open an app, "keycode:package" or "KEYCODE_NAME:package" (config.xml app_keys). */
     final List<String> appKeys;
+    /** The "scan:" entries of app_keys go to KeyBridge (getevent over the TV's own ADB) instead of the services. */
+    final boolean keyBridge;
     /** The Settings button opens the quick settings panel instead of the TV's Settings (settings_key_panel). */
     final boolean settingsKeyPanel;
     /** Whether themes may show a wallpaper (config.json, wallpaper). */
@@ -143,7 +145,8 @@ final class Config {
                    int wallpaperRotationMinutes, int wallpaperDim, String wallpaperOrder, boolean overlayApplied,
                    Festival festival, int[] inputKeycodes, List<String> appKeys,
                    List<RaceWeekend.Race> raceCalendar, boolean cinematicHome, boolean ambientGlow, int homeIdleClockMinutes,
-                   int dockSize, List<InputTile> inputTiles) {
+                   int dockSize, List<InputTile> inputTiles, boolean keyBridge) {
+        this.keyBridge = keyBridge;
         this.dockSize = dockSize;
         this.inputTiles = Collections.unmodifiableList(inputTiles);
         this.inputKeycodes = inputKeycodes;
@@ -245,6 +248,7 @@ final class Config {
         boolean settingsKeyPanel = res.getBoolean(R.bool.settings_key_panel);
         int[] inputKeycodes = res.getIntArray(R.array.input_key_keycodes);
         List<String> appKeys = new ArrayList<>(Arrays.asList(res.getStringArray(R.array.app_keys)));
+        boolean keyBridge = res.getBoolean(R.bool.key_bridge);
         boolean cinematic = res.getBoolean(R.bool.cinematic_home);
         boolean ambientGlow = res.getBoolean(R.bool.ambient_glow);
         int idleClockMinutes = res.getInteger(R.integer.home_idle_clock_minutes);
@@ -296,6 +300,7 @@ final class Config {
             settingsKeyPanel = bool(json, "settings_key_panel", settingsKeyPanel);
             inputKeycodes = intArray(json, "input_key_keycodes", inputKeycodes);
             appKeys = stringList(json, "app_keys", appKeys);
+            keyBridge = bool(json, "key_bridge", keyBridge);
             cinematic = bool(json, "cinematic_home", cinematic);
             ambientGlow = bool(json, "ambient_glow", ambientGlow);
             idleClockMinutes = integer(json, "home_idle_clock_minutes", idleClockMinutes, 0, 1440);
@@ -359,7 +364,7 @@ final class Config {
                 wallpapers, rotationMinutes, wallpaperDim, wallpaperOrder, applied,
                 festival, inputKeycodes, appKeys, json == null ? Collections.emptyList() : raceCalendar(json), cinematic, ambientGlow,
                 Math.max(0, idleClockMinutes),
-                Math.max(InputTile.MIN_DOCK, Math.min(InputTile.MAX_DOCK, dockSize)), inputTiles);
+                Math.max(InputTile.MIN_DOCK, Math.min(InputTile.MAX_DOCK, dockSize)), inputTiles, keyBridge);
     }
 
     /**
