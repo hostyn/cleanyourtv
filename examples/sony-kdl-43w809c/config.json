@@ -22,5 +22,11 @@
       "label": "Fire TV",
       "icon": "box"
     }
+  ],
+  "app_banners": [
+    "io.gh.reisxd.tizentube.cobalt=banner_youtube_noads"
+  ],
+  "app_labels": [
+    "io.gh.reisxd.tizentube.cobalt=YouTube"
   ]
 }

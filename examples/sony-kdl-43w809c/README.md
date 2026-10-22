@@ -56,6 +56,13 @@ again with the `theme.sh` line above, no rebuild needed. For a wallpaper, put a 
 `com.sony.dtv.tvx`, and the Album, Music and Video players): the Inputs pill already opens Live TV and every
 HDMI and AV input. Remove a package from that list to bring its tile back.
 
+## TizenTube as "YouTube"
+
+TizenTube's own banner did not say what it was, so the family kept opening the official YouTube with ads.
+`config.json` gives its tile `banner_youtube_noads` (`app_banners`), YouTube's TV banner with a small
+"TizenTube - No ads" under the wordmark, and the name "YouTube" (`app_labels`). The banner is bundled with
+the launcher (`res/drawable-nodpi`), so it needs a launcher build that includes it.
+
 ## The Fire TV as a favourite
 
 With the Halo launcher, `config.json` puts the Fire TV on HDMI 1 at the end of the favourites (`dock_size` 5)
