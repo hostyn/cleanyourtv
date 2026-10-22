@@ -71,7 +71,14 @@ if ("$out" -match 'Error') { throw 'could not set the new launcher as home; the 
 # in the batch a failed start only prints an Error line and the stock launcher would be disabled anyway.
 $start = (& $py -I ..\tools\tv.py 'am start -W -n com.gathin.tvhome/.MainActivity') -join "`n"
 Write-Host $start
-if ($start -notmatch 'Status: ok' -or $start -match '(?m)^Error') { throw "the new launcher did not start (see above); $StockLauncher was left enabled" }
+$startOk = $start -match 'Status: ok'
+# Android 7 answers "Status: timeout" for a launcher that did come up (Sony BRAVIA 2015); the resumed activity is the proof there.
+if (-not $startOk -and $start -match 'Status: timeout') {
+    $resumed = (& $py -I ..\tools\tv.py 'dumpsys activity activities | grep -E "mResumedActivity|topResumedActivity"') -join "`n"
+    Write-Host $resumed
+    $startOk = $resumed -match 'com\.gathin\.tvhome/\.MainActivity'
+}
+if (-not $startOk -or $start -match '(?m)^Error') { throw "the new launcher did not start (see above); $StockLauncher was left enabled" }
 @(
     'pm grant com.gathin.tvhome android.permission.ACCESS_FINE_LOCATION 2>/dev/null; echo location-granted',
     'cmd package compile -m speed -f com.gathin.tvhome',

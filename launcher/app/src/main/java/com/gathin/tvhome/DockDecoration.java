@@ -31,7 +31,7 @@ public class DockDecoration extends RecyclerView.ItemDecoration {
         this.heading = ctx.getString(R.string.apps_heading);
         text.setColor(0xFF9EA3AA);
         text.setTextSize(14 * ctx.getResources().getDisplayMetrics().scaledDensity);
-        text.setTypeface(ctx.getResources().getFont(R.font.halo_medium));
+        text.setTypeface(LegacyFonts.get(ctx, R.font.halo_medium));
         text.setTextAlign(rtl ? Paint.Align.RIGHT : Paint.Align.LEFT);
     }
 
