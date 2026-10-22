@@ -505,7 +505,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             @Override
             public void onScrolled(@NonNull RecyclerView rv, int dx, int dy) {
                 if (!cinematic && dy != 0) followFocusedTile();
-                if (dy != 0) dimOthers();   // tiles fade out as they slide under the header (edgeFade)
+                // Tiles fade out as they slide under the header (edgeFade). Also on (0, 0), which RecyclerView sends
+                // after a jump such as scrollToPosition(0) when Home comes back: without it the dock keeps the
+                // alpha 0 it had while scrolled out of sight.
+                dimOthers();
                 if (!glassShown) return;
                 glassTargetY -= dy;
                 glassScrollShift -= dy;
