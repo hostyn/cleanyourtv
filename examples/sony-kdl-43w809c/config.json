@@ -2,6 +2,7 @@
   "dock_apps": [
     "io.gh.reisxd.tizentube.cobalt",
     "org.jellyfin.androidtv",
+    "ar.tvplayer.tv",
     "com.netflix.ninja",
     "com.amazon.amazonvideo.livingroom",
     "input:com.sony.dtv.tvinput.external/.ExternalTvInputService/HW2"
@@ -15,7 +16,7 @@
   "live_tv_package": "com.sony.dtv.tvx",
   "columns": 4,
   "rows_below_dock": 0,
-  "dock_size": 5,
+  "dock_size": 6,
   "input_tiles": [
     {
       "input": "com.sony.dtv.tvinput.external/.ExternalTvInputService/HW2",
@@ -24,9 +25,11 @@
     }
   ],
   "app_banners": [
-    "io.gh.reisxd.tizentube.cobalt=banner_youtube_noads"
+    "io.gh.reisxd.tizentube.cobalt=banner_youtube_noads",
+    "ar.tvplayer.tv=banner_tivimate"
   ],
   "app_labels": [
-    "io.gh.reisxd.tizentube.cobalt=YouTube"
+    "io.gh.reisxd.tizentube.cobalt=YouTube",
+    "ar.tvplayer.tv=TiviMate"
   ]
 }
