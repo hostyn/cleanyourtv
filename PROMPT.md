@@ -116,7 +116,10 @@ Launcher
   INPUT_KEY_SERVICE=1, `settings_key_keycodes` with HOME_KEY_SERVICE=1 (`config.xml` or the theme).
   A button the TV logs as `KEY_UNKNOWN` or `KEY_PROGRAM` cannot be matched by keycode, since every
   unmapped button shares it: read the scancode with `getevent -lt` and use `settings_key_scancodes`,
-  which only `config.xml` carries (a theme can set keycodes, not scancodes).
+  which only `config.xml` carries (a theme can set keycodes, not scancodes). Both services filter keys,
+  and while one is on Android stops repeating held keys: ask me to hold Volume and an arrow afterwards. If
+  they move one step only and I'm happy to leave network debugging on, use `key_bridge` with `scan:` entries
+  in `app_keys` instead (no service; see `examples/tcl-g08-google-tv`).
 - On Android 11 and newer the launcher must declare `<queries>` for `android.intent.category.LEANBACK_LAUNCHER`,
   or package visibility silently hides every app and the grid comes up empty; target a recent SDK, some
   Google TV 14 sets refuse older targets at install.

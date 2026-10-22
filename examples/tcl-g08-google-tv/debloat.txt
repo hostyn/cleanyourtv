@@ -27,9 +27,30 @@
 #   ["4062:com.netflix.ninja", "190:<youtube app>", "4099:com.amazon.amazonvideo.livingroom"] and
 #   settings_key_keycodes [83] brings all four back (verified with the real remote), BUT while any key-filtering
 #   accessibility service is on, holding Volume up/down moves one step only: Android stops synthesizing key
-#   repeats. This unit runs without the service, by choice. Keeping launcherx enabled for its
+#   repeats. Checked 2026-10-22 with a logging build: the
+#   service never receives Volume up/down (TCL's policy handles them before the accessibility filter), so it
+#   cannot repeat them itself; and every key it does see (D-pad too) is re-injected without repeats, so
+#   holding an arrow moves one step only while the service is on.
+#   Why launcherx can do it (from TCL's tcl-service.jar, TclShortCutKeyManager): app buttons come from a
+#   key -> behaviour table in /tclconfig/.../input_key/shortcutkey.pb (read-only partition, unreadable by the
+#   shell) plus a cloud copy under /data that only system can write. With ro.tcl.product_type=GTV, behaviours of
+#   type SENDTOLAUNCHER (Prime 4099) go out as an explicit broadcast to
+#   launcherx/.globalbutton.GlobalButtonLaunch_Receiver, and YouTube (190) is a framework global key routed to
+#   launcherx/.remotecontrol.GlobalKeyListener_Receiver. Both name launcherx's package, which no other APK can
+#   take, so without root nothing but launcherx can answer them. Disney+ (4141) and the media player are
+#   started by TCL directly, which is why they still work. Keeping launcherx enabled for its
 #   GlobalKeyListener_Receiver does not work either: it takes Home back although set-home-activity prints
 #   Success, and the shell may not disable its HomeActivity component alone (SecurityException).
+# - TV/Guide (KEY_EPG 365 -> KEYCODE_GUIDE, a global key routed to launcherx) also does nothing without it.
+# - What this unit runs (2026-10-22): "key_bridge": true with app_keys scan:566 Netflix, scan:569 TizenTube,
+#   scan:752 Prime Video, scan:561 settings and scan:365 com.tcl.tv, no accessibility service. The launcher
+#   starts a getevent script as the shell user through its own ADB key on 127.0.0.1:5555 (accepted once on
+#   screen); all five buttons work and held Volume and arrows still repeat. Survives standby; after a reboot
+#   Home starts it again (checked). Dies when debugging is switched off, so network debugging stays on here.
+#   Netflix and Prime Video also wake the TV from standby; the app then opens straight away. Home stopped by
+#   standby and shown again without having been on screen in between drew one frame and then nothing (tiles
+#   invisible, focus still moving): MainActivity now notices a restart with no frame and starts a new process,
+#   under a second (checked with the real remote, 2026-10-22).
 # - TCL Channel (456 -> 4020) starts com.tcl.waterfall.overseas, disabled below, so it does nothing.
 # - The mic button answers "not available" because com.google.android.katniss is disabled below.
 

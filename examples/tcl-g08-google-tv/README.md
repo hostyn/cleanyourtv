@@ -6,7 +6,7 @@ set: the debloat list and the Clean Your TV launcher as Home. Tested on 21 Octob
 | File | What it is |
 |---|---|
 | `debloat.txt` | The 33 packages that were disabled, grouped and commented, plus what each remote button does |
-| `config.json` | Dock order, hidden apps, Live TV app, columns; push it with `tools/theme.sh` |
+| `config.json` | Dock order, hidden apps, Live TV app, columns, remote buttons; push it with `tools/theme.sh` |
 
 All commands run from the repo root, with the TV's IP in `TV_HOST`. USB debugging must be on while you
 run them (Settings → System → Developer options), and `tools/venv` must exist
@@ -67,17 +67,24 @@ because the Inputs pill already covers Live TV and the inputs.
 
 ## The remote's app buttons
 
-Netflix, YouTube, Prime Video and Settings do nothing once Google TV's home is gone; the dock and the
-Settings pill cover them. They can be brought back with `HOME_KEY_SERVICE=1 launcher/build-and-install.sh`
-plus these keys in `config.json`:
+Netflix, YouTube, Prime Video, Settings and TV do nothing once Google TV's home is gone: TCL's system code
+hands them to launcherx by name. `config.json` brings them back with `key_bridge`:
 
 ```json
-"app_keys": ["4062:com.netflix.ninja", "190:io.gh.reisxd.tizentube.cobalt", "4099:com.amazon.amazonvideo.livingroom"],
-"settings_key_keycodes": [83]
+"key_bridge": true,
+"app_keys": ["scan:566:com.netflix.ninja", "scan:569:io.gh.reisxd.tizentube.cobalt",
+             "scan:752:com.amazon.amazonvideo.livingroom", "scan:561:settings", "scan:365:com.tcl.tv"]
 ```
 
-The trade-off: while that accessibility service is on, holding Volume up or down moves one step only, so
-this unit runs without it. Input, Disney+, the media player button and Home work either way.
+The launcher connects to the TV's own network ADB (127.0.0.1:5555) with its own key and starts a small
+`getevent` script that opens the app for each button. The first time, the TV asks "Allow USB debugging?"
+for `cleanyourtv@Smart TV Pro`: tick "Always allow". Nothing is intercepted, so holding Volume or an arrow
+keeps repeating, which the accessibility services (`HOME_KEY_SERVICE=1`) break on this set.
+
+The cost: **network debugging stays on**. The script dies when debugging is switched off, and after a
+reboot Home starts it again only while debugging is on. Standby keeps it running. To stop it, remove
+`key_bridge` from `config.json` and push the theme again (the launcher then stops the script), or switch
+debugging off.
 
 ## Notes for this set
 
@@ -85,4 +92,5 @@ this unit runs without it. Input, Disney+, the media player button and Home work
   was left alone. With a hostname in `private_dns_specifier` the TV would bypass it.
 - Firmware updates come through Play Services and are untouched.
 - Screenshots come out black while HDMI, Live TV or Netflix is on screen; press Home first.
-- Switch USB debugging off when you're done; the launcher keeps working without it.
+- Debugging stays on for `key_bridge` (see above). Without the bridge, switch it off when you're done; the
+  launcher keeps working without it.

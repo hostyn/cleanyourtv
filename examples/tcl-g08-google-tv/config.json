@@ -26,5 +26,13 @@
   ],
   "app_labels": [
     "io.gh.reisxd.tizentube.cobalt=YouTube"
+  ],
+  "key_bridge": true,
+  "app_keys": [
+    "scan:566:com.netflix.ninja",
+    "scan:569:io.gh.reisxd.tizentube.cobalt",
+    "scan:752:com.amazon.amazonvideo.livingroom",
+    "scan:561:settings",
+    "scan:365:com.tcl.tv"
   ]
 }
