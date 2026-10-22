@@ -1,0 +1,26 @@
+{
+  "dock_apps": [
+    "io.gh.reisxd.tizentube.cobalt",
+    "org.jellyfin.androidtv",
+    "com.netflix.ninja",
+    "com.amazon.amazonvideo.livingroom",
+    "input:com.sony.dtv.tvinput.external/.ExternalTvInputService/HW2"
+  ],
+  "hidden_apps": [
+    "com.sony.dtv.tvx",
+    "com.sony.dtv.osat.album",
+    "com.sony.dtv.osat.music",
+    "com.sony.dtv.osat.video"
+  ],
+  "live_tv_package": "com.sony.dtv.tvx",
+  "columns": 4,
+  "rows_below_dock": 0,
+  "dock_size": 5,
+  "input_tiles": [
+    {
+      "input": "com.sony.dtv.tvinput.external/.ExternalTvInputService/HW2",
+      "label": "Fire TV",
+      "icon": "box"
+    }
+  ]
+}
