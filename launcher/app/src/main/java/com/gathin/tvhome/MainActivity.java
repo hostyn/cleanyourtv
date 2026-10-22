@@ -40,6 +40,7 @@ import android.os.Environment;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Looper;
+import android.os.PowerManager;
 import android.os.SystemClock;
 import android.provider.Settings;
 import android.text.SpannableString;
@@ -215,6 +216,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private boolean stopped;
     /** Between onStart and onStop: Home is (at least partly) on screen. */
     private boolean started;
+    /** Frames drawn since the last stuck-window check started (see onRestart and drawCheck). */
+    private int drawsSinceCheck;
     /** The Inputs or Module cards dropdown while one is open, so onPause can close it. */
     private PopupWindow openPopup;
     /** Reorder mode is on (top-bar button). */
@@ -619,6 +622,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         }
         if (festive) applyFestiveSkin((TextView) btnInputs, (TextView) btnSettings);
 
+        getWindow().getDecorView().getViewTreeObserver().addOnDrawListener(() -> drawsSinceCheck++);
         // Hide the glass when focus leaves the tiles.
         getWindow().getDecorView().getViewTreeObserver().addOnGlobalFocusChangeListener((oldF, newF) -> {
             boolean onTile = newF != null && newF.getId() == R.id.card;
@@ -681,6 +685,38 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         }
     }
 
+
+    @Override
+    protected void onRestart() {
+        super.onRestart();
+        root.removeCallbacks(drawCheck);
+        root.removeCallbacks(drawVerdict);
+        root.postDelayed(drawCheck, 300);
+    }
+
+    /**
+     * Home stopped by standby that comes back without having been on screen in between (the TV woke into an app:
+     * a remote app button through key_bridge, or a cast) can be left drawing nothing after its first frame on TCL
+     * Google TV 14 (examples/tcl-g08-google-tv): layout passes still run, every draw is skipped, so the tiles stay
+     * at the first frame of their entrance, invisible. recreate() does not help; a new process does. So a moment
+     * after a restart, ask for a frame, and if none comes while the TV is awake and Home has focus, start over.
+     */
+    private final Runnable drawVerdict = this::restartIfNotDrawing;
+
+    private final Runnable drawCheck = () -> {
+        drawsSinceCheck = 0;
+        getWindow().getDecorView().invalidate();
+        root.postDelayed(drawVerdict, 500);
+    };
+
+    private void restartIfNotDrawing() {
+        PowerManager power = getSystemService(PowerManager.class);
+        if (drawsSinceCheck > 0 || isFinishing() || !hasWindowFocus() || power == null || !power.isInteractive()) return;
+        android.util.Log.w("MainActivity", "Home stopped drawing after standby; restarting the launcher process");
+        startActivity(new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME)
+                .setPackage(getPackageName()).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+        android.os.Process.killProcess(android.os.Process.myPid());
+    }
 
     @Override
     protected void onStart() {
@@ -841,6 +877,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     @Override
     protected void onPause() {
         super.onPause();
+        root.removeCallbacks(drawCheck);
+        root.removeCallbacks(drawVerdict);
         root.removeCallbacks(showIdleClock);
         endReorder();   // Home or another app while reordering keeps the order so far
         wallpaperPlayer.stop();
