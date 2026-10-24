@@ -31,5 +31,10 @@
   "app_labels": [
     "io.gh.reisxd.tizentube.cobalt=YouTube",
     "ar.tvplayer.tv=TiviMate"
+  ],
+  "app_keys": [
+    "183:io.gh.reisxd.tizentube.cobalt",
+    "184:org.jellyfin.androidtv",
+    "185:ar.tvplayer.tv"
   ]
 }

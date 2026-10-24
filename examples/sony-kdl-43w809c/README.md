@@ -17,7 +17,7 @@ first if you used the stock `adb` client; otherwise `tools/tv.py` times out afte
 
 ```bash
 TV_HOST=<tv-ip> tools/disable.sh examples/sony-kdl-43w809c/debloat.txt
-TV_HOST=<tv-ip> launcher/build-and-install.sh
+TV_HOST=<tv-ip> HOME_KEY_SERVICE=1 launcher/build-and-install.sh
 TV_HOST=<tv-ip> tools/theme.sh examples/sony-kdl-43w809c
 TV_HOST=<tv-ip> tools/venv/bin/python -I tools/tv.py 'settings put secure screensaver_components com.gathin.tvhome/.ClockDream'
 ```
@@ -65,15 +65,25 @@ the launcher (`res/drawable-nodpi`), so it needs a launcher build that includes 
 
 ## The Fire TV as a favourite
 
-With the Halo launcher, `config.json` puts the Fire TV on HDMI 1 at the end of the favourites (`dock_size` 5)
-as an input tile. It names the port by its input id, `com.sony.dtv.tvinput.external/.ExternalTvInputService/HW2`
+With the Halo launcher, `config.json` puts the Fire TV on HDMI 1 at the end of the favourites (`dock_size` 6,
+after YouTube, Jellyfin, TiviMate, Netflix and Prime Video) as an input tile. It names the port by its input id, `com.sony.dtv.tvinput.external/.ExternalTvInputService/HW2`
 (hardware 2, `hdmi_port=1` in `dumpsys tv_input`), not as `"HDMI 1"`: Sony calls its ports "HDMI 1/MHL" and
 "HDMI 4/ARC", which the launcher does not read as port numbers. The id of the port stays the same when the
 Fire TV reconnects; the CEC device's own id (`HDMI100004`) might not.
 
+## Colour buttons open apps
+
+`app_keys` in `config.json` turns the remote's red, green and yellow buttons into app buttons: red (keycode 183,
+`KEYCODE_PROG_RED`) opens TizenTube, green (184) Jellyfin and yellow (185) TiviMate. Each colour has its own
+keycode, so no scancode entries are needed. The launcher's `HomeKeyService` answers them, which is why the
+install line above passes `HOME_KEY_SERVICE=1`: Android switches the service off whenever the launcher is
+reinstalled. `InputKeyService` would work too, but it also takes the Input button and shows the launcher's
+inputs menu instead of Sony's. With the service on, held arrows and Volume still repeat (checked with the real
+remote, 2026-10-23). Blue (186) is still free. To change one, edit its line and push the theme again.
+
 ## Notes for this set
 
 - The remote's Netflix, YouTube, Google Play, Input and Action Menu buttons keep working without the stock
-  launcher, so no accessibility service is needed (and holding Volume keeps repeating).
+  launcher. Only the colour buttons above need the accessibility service.
 - Screenshots come out black while HDMI, Live TV or Netflix is on screen; press Home first.
 - Switch USB debugging off when you're done; the launcher keeps working without it.
