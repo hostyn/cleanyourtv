@@ -35,6 +35,8 @@
     "scan:569:io.gh.reisxd.tizentube.cobalt",
     "scan:752:com.amazon.amazonvideo.livingroom",
     "scan:561:settings",
-    "scan:365:com.tcl.tv"
+    "scan:365:com.tcl.tv",
+    "scan:485:org.jellyfin.androidtv",
+    "scan:456:ar.tvplayer.tv"
   ]
 }

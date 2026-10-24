@@ -22,6 +22,8 @@
 # Remote (IR, /dev/input/event1 "MTK Smart TV IR Receiver"; scancode -> keycode, logged with the real remote):
 # - Input (471 -> 178) goes to TclShortCutKeyManager / com.tcl.suspension's quick panel: works without launcherx.
 # - Disney+ (762 -> 4141) and the media player button (485 -> 4057) are started by the system: they keep working.
+#   key_bridge cannot stop the system's own action, so mapping the media player button to another app opened
+#   both until com.tcl.ui_mediaCenter was disabled (below); it now opens only the mapped app.
 # - Netflix (566 -> 4062), YouTube (569 -> 190, a global key routed to launcherx), Prime Video (752 -> 4099) and
 #   Settings (561 -> 83) do nothing once launcherx is off. HOME_KEY_SERVICE=1 with app_keys
 #   ["4062:com.netflix.ninja", "190:<youtube app>", "4099:com.amazon.amazonvideo.livingroom"] and
@@ -43,15 +45,17 @@
 #   Success, and the shell may not disable its HomeActivity component alone (SecurityException).
 # - TV/Guide (KEY_EPG 365 -> KEYCODE_GUIDE, a global key routed to launcherx) also does nothing without it.
 # - What this unit runs (2026-10-22): "key_bridge": true with app_keys scan:566 Netflix, scan:569 TizenTube,
-#   scan:752 Prime Video, scan:561 settings and scan:365 com.tcl.tv, no accessibility service. The launcher
+#   scan:752 Prime Video, scan:561 settings, scan:365 com.tcl.tv, and since 2026-10-23 scan:485 (media player)
+#   Jellyfin and scan:456 (TCL Channel) TiviMate, no accessibility service. The launcher
 #   starts a getevent script as the shell user through its own ADB key on 127.0.0.1:5555 (accepted once on
-#   screen); all five buttons work and held Volume and arrows still repeat. Survives standby; after a reboot
+#   screen); all seven buttons work and held Volume and arrows still repeat. Survives standby; after a reboot
 #   Home starts it again (checked). Dies when debugging is switched off, so network debugging stays on here.
 #   Netflix and Prime Video also wake the TV from standby; the app then opens straight away. Home stopped by
 #   standby and shown again without having been on screen in between drew one frame and then nothing (tiles
 #   invisible, focus still moving): MainActivity now notices a restart with no frame and starts a new process,
 #   under a second (checked with the real remote, 2026-10-22).
-# - TCL Channel (456 -> 4020) starts com.tcl.waterfall.overseas, disabled below, so it does nothing.
+# - TCL Channel (456 -> 4020) starts com.tcl.waterfall.overseas, disabled below, so on its own it does nothing;
+#   key_bridge maps it to TiviMate (above).
 # - The mic button answers "not available" because com.google.android.katniss is disabled below.
 
 # TCL telemetry and analytics
@@ -95,6 +99,7 @@ com.tcl.airplay2                       # AirPlay
 com.mediatek.AirplayAPK                # AirPlay
 com.mediatek.airplaydaemon             # AirPlay
 com.tcl.smartalexa                     # Alexa
+com.tcl.ui_mediaCenter                 # USB media player; its remote button opens Jellyfin through key_bridge
 
 # Second Home claimant: disable it while launcherx still owns Home (disable.sh checks the Wi-Fi owner first)
 com.google.android.tungsten.setupwraith  # setup wizard, claims HOME after launcherx is disabled
